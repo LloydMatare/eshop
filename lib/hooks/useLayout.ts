@@ -1,36 +1,33 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { useTheme } from "next-themes";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 type Layout = {
-  theme: string
-  drawerOpen: boolean
-}
+  drawerOpen: boolean;
+};
+
 const initialState: Layout = {
-  theme: 'system',
   drawerOpen: false,
-}
+};
 
 export const layoutStore = create<Layout>()(
   persist(() => initialState, {
-    name: 'layoutStore',
+    name: "layoutStore",
   })
-)
+);
 
 export default function useLayoutService() {
-  const { theme, drawerOpen } = layoutStore()
+  const { theme, setTheme } = useTheme();
+  const { drawerOpen } = layoutStore();
 
   return {
-    theme,
+    theme: theme || "system",
     drawerOpen,
     toggleTheme: () => {
-      layoutStore.setState({
-        theme: theme === 'dark' ? 'light' : 'dark',
-      })
+      setTheme(theme === "dark" ? "light" : "dark");
     },
     toggleDrawer: () => {
-      layoutStore.setState({
-        drawerOpen: !drawerOpen,
-      })
+      layoutStore.setState({ drawerOpen: !drawerOpen });
     },
-  }
+  };
 }

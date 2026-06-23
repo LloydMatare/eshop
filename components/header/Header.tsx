@@ -1,63 +1,109 @@
 import Link from "next/link";
-import React from "react";
-import Menu from "./Menu";
+import { Cpu, Menu as MenuIcon, Phone, Truck } from "lucide-react";
 import { SearchBox } from "./SearchBox";
-import Image from "next/image";
-import { Cpu } from "lucide-react";
+import Menu from "./Menu";
+
+const categories = [
+  "All",
+  "Laptops & Computers",
+  "Servers & Storage",
+  "Networking",
+  "Software",
+  "Accessories",
+];
 
 const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full">
-      <nav className="backdrop-blur-md bg-base-100/95 border-b border-base-300 shadow-lg">
-        <div className="w-full px-4 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Left Section - Logo & Menu Button */}
-            <div className="flex items-center gap-4">
+      {/* Top Announcement Bar */}
+      <div className="hidden md:flex h-9 items-center justify-between bg-primary/5 border-b border-border px-4 lg:px-8 text-xs text-muted-foreground">
+        <div className="flex items-center gap-6">
+          <span className="flex items-center gap-1.5">
+            <Truck className="w-3.5 h-3.5 text-primary" />
+            Free shipping on orders over $500
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Phone className="w-3.5 h-3.5 text-primary" />
+            24/7 Enterprise Support
+          </span>
+        </div>
+        <div className="flex items-center gap-6">
+          <span>1 Year Warranty on All Products</span>
+        </div>
+      </div>
+
+      {/* Mobile Top Bar */}
+      <div className="md:hidden flex h-8 items-center justify-center bg-primary/5 border-b border-border text-xs text-muted-foreground">
+        <Truck className="w-3 h-3 mr-1.5 text-primary" />
+        Free shipping on orders over $500
+      </div>
+
+      {/* Main Navigation */}
+      <nav className="bg-background/90 backdrop-blur-xl border-b border-border">
+        <div className="px-4 lg:px-8">
+          <div className="flex items-center justify-between h-16 gap-4">
+            {/* Left: Hamburger + Logo */}
+            <div className="flex items-center gap-3">
               <label
                 htmlFor="my-drawer"
-                className="btn btn-square btn-ghost hover:bg-primary/10 lg:hidden"
+                className="flex lg:hidden w-9 h-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all cursor-pointer"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  className="inline-block w-6 h-6 stroke-current"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 6h16M4 12h16M4 18h16"
-                  ></path>
-                </svg>
+                <MenuIcon className="w-5 h-5" />
               </label>
 
-              <Link
-                href="/"
-                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-              >
-                <div className="bg-gradient-to-br from-primary to-secondary p-2 rounded-lg">
-                  <Cpu className="w-8 h-8 text-white" />
+              <Link href="/" className="flex items-center gap-2.5 shrink-0">
+                <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                  <Cpu className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <div className="hidden sm:block">
-                  <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                <div>
+                  <span className="text-lg font-bold tracking-tight text-foreground">
                     Compulink
                   </span>
-                  <p className="text-xs text-base-content/60">IT Solutions</p>
+                  <span className="hidden sm:inline text-[10px] font-medium text-muted-foreground ml-2 uppercase tracking-wider">
+                    IT Solutions
+                  </span>
                 </div>
               </Link>
             </div>
 
-            {/* Center Section - Search (Desktop) */}
+            {/* Center: Search (Desktop) */}
+            <div className="hidden md:flex flex-1 max-w-2xl mx-auto">
+              <SearchBox />
+            </div>
 
-            {/* Right Section - Menu */}
-            <Menu />
+            {/* Right: Icons + User */}
+            <div className="flex items-center gap-1">
+              {/* Mobile Search Toggle - just links to /search */}
+              <Link
+                href="/search"
+                className="flex md:hidden w-9 h-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all"
+              >
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </Link>
+              <Menu />
+            </div>
           </div>
-
-          {/* Mobile Search */}
-          {/* / */}
         </div>
       </nav>
+
+      {/* Category Strip (Desktop) */}
+      <div className="hidden lg:block bg-background/70 backdrop-blur-xl border-b border-border">
+        <div className="px-8">
+          <div className="flex items-center h-11 gap-1 overflow-x-auto scrollbar-none">
+            {categories.map((cat) => (
+              <Link
+                key={cat}
+                href={cat === "All" ? "/search" : `/search?category=${encodeURIComponent(cat)}`}
+                className="whitespace-nowrap px-4 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/60 rounded-lg transition-all"
+              >
+                {cat === "All" ? "All Products" : cat}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
     </header>
   );
 };

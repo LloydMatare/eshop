@@ -9,10 +9,10 @@ type Cart = {
   taxPrice: number;
   shippingPrice: number;
   totalPrice: number;
-
   paymentMethod: string;
   shippingAddress: ShippingAddress;
 };
+
 const initialState: Cart = {
   items: [],
   itemsPrice: 0,
@@ -45,6 +45,7 @@ export default function useCartService() {
     paymentMethod,
     shippingAddress,
   } = cartStore();
+
   return {
     items,
     itemsPrice,
@@ -73,14 +74,12 @@ export default function useCartService() {
     decrease: (item: OrderItem) => {
       const exist = items.find((x) => x.slug === item.slug);
       if (!exist) return;
-
       const updatedCartItems =
         exist.qty === 1
-          ? items.filter((x: OrderItem) => x.slug !== item.slug) // Remove item if qty is 1
+          ? items.filter((x: OrderItem) => x.slug !== item.slug)
           : items.map(
-              (x) => (x.slug === item.slug ? { ...x, qty: x.qty - 1 } : x) // Decrease qty if it exists
+              (x) => (x.slug === item.slug ? { ...x, qty: x.qty - 1 } : x)
             );
-
       const { itemsPrice, shippingPrice, taxPrice, totalPrice } =
         calcPrice(updatedCartItems);
       cartStore.setState({
@@ -91,16 +90,8 @@ export default function useCartService() {
         totalPrice,
       });
     },
-
     remove: (item: OrderItem) => {
-      const exist = items.find((x) => x.slug === item.slug);
-      if (!exist) return;
-      const updatedCartItems =
-        exist.qty === 1
-          ? items.filter((x: OrderItem) => x.slug !== item.slug)
-          : items.map((x) =>
-              item.slug ? { ...exist, qty: (exist.qty = 0) } : x
-            );
+      const updatedCartItems = items.filter((x) => x.slug !== item.slug);
       const { itemsPrice, shippingPrice, taxPrice, totalPrice } =
         calcPrice(updatedCartItems);
       cartStore.setState({
@@ -112,19 +103,13 @@ export default function useCartService() {
       });
     },
     saveShippingAddress: (shippingAddress: ShippingAddress) => {
-      cartStore.setState({
-        shippingAddress,
-      });
+      cartStore.setState({ shippingAddress });
     },
     savePaymentMethod: (paymentMethod: string) => {
-      cartStore.setState({
-        paymentMethod,
-      });
+      cartStore.setState({ paymentMethod });
     },
     clear: () => {
-      cartStore.setState({
-        items: [],
-      });
+      cartStore.setState({ items: [] });
     },
     init: () => cartStore.setState(initialState),
   };
@@ -132,10 +117,10 @@ export default function useCartService() {
 
 const calcPrice = (items: OrderItem[]) => {
   const itemsPrice = round2(
-      items.reduce((acc, item) => acc + item.price * item.qty, 0)
-    ),
-    shippingPrice = round2(itemsPrice > 1 ? 0 : 0),
-    taxPrice = round2(Number(0.15 * itemsPrice)),
-    totalPrice = round2(itemsPrice + shippingPrice + taxPrice);
+    items.reduce((acc, item) => acc + item.price * item.qty, 0)
+  );
+  const shippingPrice = round2(itemsPrice > 100 ? 0 : 10);
+  const taxPrice = round2(Number(0.15 * itemsPrice));
+  const totalPrice = round2(itemsPrice + shippingPrice + taxPrice);
   return { itemsPrice, shippingPrice, taxPrice, totalPrice };
 };

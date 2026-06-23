@@ -1,30 +1,34 @@
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  await dbConnect();
-  const order = await OrderModel.findById(params.id);
+  const order = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, (await params).id))
+    .limit(1)
+    .then((r) => r[0]);
   return NextResponse.json(order);
 }
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await dbConnect();
-    const { orderId } = params;
-    const { isPaid } = await req.json(); // Assuming payment update sends { isPaid: true }
+    const { isPaid } = await req.json();
 
-    const updatedOrder = await OrderModel.findByIdAndUpdate(
-      orderId,
-      { isPaid },
-      { new: true }
-    );
+    const updatedOrder = await db
+      .update(orders)
+      .set({ isPaid })
+      .where(eq(orders.id, (await params).id))
+      .returning()
+      .then((r) => r[0]);
 
     if (!updatedOrder)
       return NextResponse.json({ message: "Order not found" }, { status: 404 });

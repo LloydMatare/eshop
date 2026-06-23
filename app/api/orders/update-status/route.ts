@@ -1,58 +1,56 @@
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { options } from "../../auth/[...nextauth]/options";
 
-export async function PATCH(req: any) {
-  const session = await getServerSession(options);
+export async function PATCH(req: Request) {
+  const { userId, sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
-    console.log("Unauthorized access attempt");
+  if (!userId || !isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-  const { user } = req.auth;
+
   const { orderId, status } = await req.json();
 
   try {
-    await dbConnect();
-
-    // Find the order by ID
-    const order = await OrderModel.findById(orderId);
+    const order = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1)
+      .then((r) => r[0]);
 
     if (!order) {
       return NextResponse.json({ message: "Order not found" }, { status: 404 });
     }
 
-    // Check if the user is authorized to update the order status (only the admin or user who created it)
-    if (order.user.toString() !== user._id.toString() && !user.isAdmin) {
-      return NextResponse.json(
-        { message: "Not authorized to update this order" },
-        { status: 403 }
-      );
-    }
-
-    // Update the order status and add the tracking entry
     const newStatus = {
       status,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
 
-    order.tracking.push(newStatus);
+    const tracking = [...(order.tracking || []), newStatus];
 
-    // Update the order status and save it
+    const updateData: Record<string, any> = { tracking };
     if (status === "Delivered") {
-      order.isDelivered = true;
-      order.deliveredAt = new Date();
+      updateData.isDelivered = true;
+      updateData.deliveredAt = new Date();
     } else if (status === "Paid") {
-      order.isPaid = true;
-      order.paidAt = new Date();
+      updateData.isPaid = true;
+      updateData.paidAt = new Date();
     }
 
-    await order.save();
+    const updatedOrder = await db
+      .update(orders)
+      .set(updateData)
+      .where(eq(orders.id, orderId))
+      .returning()
+      .then((r) => r[0]);
 
     return NextResponse.json(
-      { message: "Order status updated", order },
+      { message: "Order status updated", order: updatedOrder },
       { status: 200 }
     );
   } catch (err: any) {

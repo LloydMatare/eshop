@@ -4,7 +4,7 @@ import useCartService from "@/lib/hooks/useCartStore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import useSWRMutation from "swr/mutation";
 import Image from "next/image";
 import { MapPin, CreditCard, Package, Edit2, ShoppingCart } from "lucide-react";
@@ -79,16 +79,13 @@ const Form = () => {
       <div className="container mx-auto px-4 lg:px-8 py-8">
         <CheckoutSteps current={4} />
 
-        {/* Page Header */}
         <div className="mt-8 mb-8">
           <h1 className="text-4xl font-bold text-base-content mb-2">Review Your Order</h1>
           <p className="text-base-content/60">Please review your order details before placing your order</p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Order Details */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Shipping Address */}
             <div className="bg-base-200 rounded-2xl p-6 border border-base-300">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -112,7 +109,6 @@ const Form = () => {
               </div>
             </div>
 
-            {/* Payment Method */}
             <div className="bg-base-200 rounded-2xl p-6 border border-base-300">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -131,7 +127,6 @@ const Form = () => {
               </div>
             </div>
 
-            {/* Order Items */}
             <div className="bg-base-200 rounded-2xl p-6 border border-base-300">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -183,7 +178,6 @@ const Form = () => {
             </div>
           </div>
 
-          {/* Order Summary Sidebar */}
           <div>
             <div className="bg-base-200 rounded-2xl p-6 border border-base-300 sticky top-24">
               <h2 className="text-2xl font-bold text-base-content mb-6">Order Summary</h2>
@@ -211,14 +205,22 @@ const Form = () => {
               <button
                 onClick={() => placeOrder()}
                 disabled={isPlacing}
-                className="btn btn-primary w-full rounded-full btn-lg gap-2 shadow-lg hover:shadow-xl transition-all"
+                className="btn btn-primary w-full rounded-full btn-lg gap-4 
+                           hover:btn-active focus-visible:outline-none focus-visible:ring-2 
+                           focus-visible:ring-ring focus-visible:ring-offset-2
+                           disabled:btn-disabled transition-all duration-200"
               >
                 {isPlacing ? (
-                  <span className="loading loading-spinner loading-sm"></span>
+                  <>
+                    <span className="loading loading-spinner loading-xs" aria-label="Loading"></span>
+                    <span class="ml-2">Processing...</span>
+                  </>
                 ) : (
-                  <ShoppingCart className="w-5 h-5" />
+                  <>
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Place Order
+                  </>
                 )}
-                {isPlacing ? 'Processing...' : 'Place Order'}
               </button>
 
               <p className="text-xs text-center text-base-content/60 mt-4">

@@ -1,18 +1,18 @@
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { options } from "../../auth/[...nextauth]/options";
 
 export async function GET() {
-  const session = await getServerSession(options);
-
-  if (!session || !session.user?.isAdmin) {
-    console.log("Unauthorized access attempt");
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  await dbConnect();
-  const orders = await OrderModel.find({ user: session.user._id });
-  return NextResponse.json(orders);
+  const userOrders = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.userId, userId));
+  return NextResponse.json(userOrders);
 }

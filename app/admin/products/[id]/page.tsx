@@ -1,20 +1,22 @@
 import AdminLayout from '@/components/admin/AdminLayout'
 import Form from './Form'
 
-export function generateMetadata({ params }: { params: { id: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return {
-    title: `Edit Product ${params.id}`,
+    title: `Edit Product ${id}`,
   }
 }
 
-export default function ProductEditPage({
+export default async function ProductEditPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
+  const { id } = await params;
   return (
     <AdminLayout activeItem="products">
-      <Form productId={params.id} />
+      <Form productId={id} />
     </AdminLayout>
   )
 }

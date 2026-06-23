@@ -1,8 +1,7 @@
-import dbConnect from '@/lib/dbConnect'
-import ProductModel from '@/lib/models/ProductModel'
+import { db } from "@/lib/db";
+import { products } from "@/lib/db/schema";
 
-export const GET = (async (req: any) => {
-    await dbConnect()
-    const products = await ProductModel.find()
-    return Response.json(products)
-}) as any
+export async function GET() {
+  const allProducts = await db.select().from(products);
+  return Response.json(allProducts);
+}

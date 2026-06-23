@@ -1,112 +1,115 @@
-import { options } from "@/app/api/auth/[...nextauth]/options";
-import dbConnect from "@/lib/dbConnect";
-import UserModel from "@/lib/models/UserModel";
-import { getServerSession } from "next-auth";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(options);
+  const { sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
-    console.log("Unauthorized access attempt");
+  if (!isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-  await dbConnect();
-  const user = await UserModel.findById(params.id);
+
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, (await params).id))
+    .limit(1)
+    .then((r) => r[0]);
+
   if (!user) {
-    return Response.json(
-      { message: "user not found" },
-      {
-        status: 404,
-      }
+    return NextResponse.json(
+      { message: "User not found" },
+      { status: 404 }
     );
   }
-  return Response.json(user);
+  return NextResponse.json(user);
 }
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(options);
+  const { sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
+  if (!isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const { name, email, isAdmin } = await req.json();
+  const { name, email, isAdmin: newIsAdmin } = await req.json();
 
   try {
-    await dbConnect();
-    const user = await UserModel.findById(params.id);
-    if (user) {
-      user.name = name;
-      user.email = email;
-      user.isAdmin = Boolean(isAdmin);
+    const updatedUser = await db
+      .update(users)
+      .set({ name, email, isAdmin: Boolean(newIsAdmin) })
+      .where(eq(users.id, (await params).id))
+      .returning()
+      .then((r) => r[0]);
 
-      const updatedUser = await user.save();
-      return Response.json({
-        message: "User updated successfully",
-        user: updatedUser,
-      });
-    } else {
-      return Response.json(
+    if (!updatedUser) {
+      return NextResponse.json(
         { message: "User not found" },
-        {
-          status: 404,
-        }
+        { status: 404 }
       );
     }
+
+    return NextResponse.json({
+      message: "User updated successfully",
+      user: updatedUser,
+    });
   } catch (err: any) {
-    return Response.json(
+    return NextResponse.json(
       { message: err.message },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(options);
+  const { sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
+  if (!isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    await dbConnect();
-    const user = await UserModel.findById(params.id);
-    if (user) {
-      if (user.isAdmin)
-        return Response.json(
-          { message: "User is admin" },
-          {
-            status: 400,
-          }
-        );
-      await user.deleteOne();
-      return Response.json({ message: "User deleted successfully" });
-    } else {
-      return Response.json(
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, (await params).id))
+      .limit(1)
+      .then((r) => r[0]);
+
+    if (!user) {
+      return NextResponse.json(
         { message: "User not found" },
-        {
-          status: 404,
-        }
+        { status: 404 }
       );
     }
+
+    if (user.isAdmin) {
+      return NextResponse.json(
+        { message: "User is admin" },
+        { status: 400 }
+      );
+    }
+
+    await db.delete(users).where(eq(users.id, (await params).id));
+    return NextResponse.json({ message: "User deleted successfully" });
   } catch (err: any) {
-    return Response.json(
+    return NextResponse.json(
       { message: err.message },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

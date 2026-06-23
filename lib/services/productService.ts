@@ -1,134 +1,134 @@
 import { cache } from "react";
-import dbConnect from "@/lib/dbConnect";
-import ProductModel from "@/lib/models/ProductModel";
-
-export const revalidate = 3600;
-
-const getLatest = cache(async () => {
-  await dbConnect();
-  const products = await ProductModel.find({})
-    .sort({ _id: -1 })
-    .limit(6)
-    .lean();
-  return products as any[];
-});
-
-const getAll = cache(async () => {
-  await dbConnect();
-  const products = await ProductModel.find({}).lean();
-  return products as any[];
-});
-
-const getFeatured = cache(async () => {
-  await dbConnect();
-  const products = await ProductModel.find({ isFeatured: true })
-    .limit(3)
-    .lean();
-  return products as any[];
-});
-
-const getProductsByCategory = cache(async (category: string) => {
-  await dbConnect();
-  const products = await ProductModel.find({ category }).lean();
-  return products as any[];
-});
-
-const getBySlug = cache(async (slug: string) => {
-  await dbConnect();
-  const product = await ProductModel.findOne({ slug }).lean();
-  return product as any;
-});
+import { db } from "@/lib/db";
+import { products } from "@/lib/db/schema";
+import { desc, eq, like, gte, lte, asc, and, sql } from "drizzle-orm";
+import type { Product } from "@/lib/types";
 
 const PAGE_SIZE = 3;
 
+const getLatest = cache(async () => {
+  const result = await db
+    .select()
+    .from(products)
+    .orderBy(desc(products.createdAt))
+    .limit(6);
+  return result as unknown as Product[];
+});
+
+const getAll = cache(async () => {
+  const result = await db.select().from(products);
+  return result as unknown as Product[];
+});
+
+const getFeatured = cache(async () => {
+  const result = await db
+    .select()
+    .from(products)
+    .where(eq(products.isFeatured, true))
+    .limit(3);
+  return result as unknown as Product[];
+});
+
+const getProductsByCategory = cache(async (category: string) => {
+  const result = await db
+    .select()
+    .from(products)
+    .where(eq(products.category, category));
+  return result as unknown as Product[];
+});
+
+const getBySlug = cache(async (slug: string) => {
+  const result = await db
+    .select()
+    .from(products)
+    .where(eq(products.slug, slug))
+    .limit(1);
+  return result[0] as unknown as Product | undefined;
+});
+
 const getByQuery = cache(
   async ({
-    q,
-    category,
-    sort,
-    price,
-    rating,
+    q = "",
+    category = "",
+    sort = "",
+    price = "",
+    rating = "",
     page = "1",
+    limit,
   }: {
-    q: string;
-    category: string;
-    price: string;
-    rating: string;
-    sort: string;
-    page: string;
-  }) => {
-    await dbConnect();
+    q?: string;
+    category?: string;
+    price?: string;
+    rating?: string;
+    sort?: string;
+    page?: string;
+    limit?: number;
+  } = {}) => {
+    const pageSize = limit || PAGE_SIZE;
+    const conditions = [];
 
-    const queryFilter =
-      q && q !== "all"
-        ? {
-            name: {
-              $regex: q,
-              $options: "i",
-            },
-          }
-        : {};
-    const categoryFilter = category && category !== "all" ? { category } : {};
-    const ratingFilter =
-      rating && rating !== "all"
-        ? {
-            rating: {
-              $gte: Number(rating),
-            },
-          }
-        : {};
-    const priceFilter =
-      price && price !== "all"
-        ? {
-            price: {
-              $gte: Number(price.split("-")[0]),
-              $lte: Number(price.split("-")[1]),
-            },
-          }
-        : {};
-    const order: Record<string, 1 | -1> =
-      sort === "lowest"
-        ? { price: 1 }
-        : sort === "highest"
-        ? { price: -1 }
-        : sort === "toprated"
-        ? { rating: -1 }
-        : { _id: -1 };
+    if (q && q !== "all") {
+      conditions.push(like(products.name, `%${q}%`));
+    }
+    if (category && category !== "all") {
+      conditions.push(eq(products.category, category));
+    }
+    if (rating && rating !== "all") {
+      conditions.push(gte(products.rating, rating));
+    }
+    if (price && price !== "all") {
+      const [min, max] = price.split("-").map(Number);
+      conditions.push(gte(products.price, String(min)));
+      if (max) conditions.push(lte(products.price, String(max)));
+    }
 
-    const products = await ProductModel.find(
-      {
-        ...queryFilter,
-        ...categoryFilter,
-        ...priceFilter,
-        ...ratingFilter,
-      },
-      "-reviews"
-    )
-      .sort(order)
-      .skip(PAGE_SIZE * (Number(page) - 1))
-      .limit(PAGE_SIZE)
-      .lean();
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const countProducts = await ProductModel.countDocuments({
-      ...queryFilter,
-      ...categoryFilter,
-      ...priceFilter,
-      ...ratingFilter,
-    });
+    let orderBy;
+    switch (sort) {
+      case "lowest":
+        orderBy = asc(products.price);
+        break;
+      case "highest":
+        orderBy = desc(products.price);
+        break;
+      case "toprated":
+        orderBy = desc(products.rating);
+        break;
+      default:
+        orderBy = desc(products.createdAt);
+    }
+
+    const result = await db
+      .select()
+      .from(products)
+      .where(where)
+      .orderBy(orderBy)
+      .limit(pageSize)
+      .offset(pageSize * (Number(page) - 1));
+
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(products)
+      .where(where);
+
+    const countProducts = Number(countResult[0]?.count) || 0;
 
     return {
-      products: products as any[],
+      products: result as unknown as Product[],
       countProducts,
       page,
-      pages: Math.ceil(countProducts / PAGE_SIZE),
+      pages: Math.ceil(countProducts / pageSize),
     };
   }
 );
 
 const getCategories = cache(async () => {
-  await dbConnect();
-  const categories = await ProductModel.find().distinct("category");
-  return categories;
+  const result = await db
+    .select({ category: products.category })
+    .from(products)
+    .groupBy(products.category);
+  return result.map((r) => r.category);
 });
 
 const productService = {

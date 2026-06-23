@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import Form from "./Form";
+import Form from "./Form.tsx";
 
 export const metadata: Metadata = {
   title: "Shipping Address",

@@ -1,24 +1,22 @@
-import { getServerSession } from "next-auth";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/dbConnect";
-import UserModel from "@/lib/models/UserModel";
-import { options } from "../../auth/[...nextauth]/options";
 
-export async function GET(req: Request) {
-  const session = await getServerSession(options);
+export async function GET() {
+  const { sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
-    console.log("Unauthorized access attempt");
+  if (!isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
+
   try {
-    await dbConnect();
-    const users = await UserModel.find();
-    return Response.json(users);
+    const allUsers = await db.select().from(users);
+    return NextResponse.json(allUsers);
   } catch (error) {
-    console.error("Error fetching orders:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch orders." },
+      { success: false, error: "Failed to fetch users." },
       { status: 500 }
     );
   }

@@ -1,4 +1,4 @@
-import { options } from "@/app/api/auth/[...nextauth]/options";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import {
   LayoutDashboard,
   MonitorUp,
@@ -10,7 +10,6 @@ import {
   Cpu,
   LogOut,
 } from "lucide-react";
-import { getServerSession } from "next-auth";
 import Link from "next/link";
 import SignOutSection from "../SignOut";
 
@@ -21,9 +20,11 @@ const AdminLayout = async ({
   activeItem: string;
   children: React.ReactNode;
 }) => {
-  const session = await getServerSession(options);
+  const { userId } = await auth();
+  const clerk = await clerkClient();
+  const user = userId ? await clerk.users.getUser(userId) : null;
 
-  if (!session || !session.user.isAdmin) {
+  if (!user || !user.publicMetadata?.isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-100">
         <div className="bg-base-200 rounded-2xl p-8 border border-base-300 max-w-md text-center">
@@ -65,11 +66,12 @@ const AdminLayout = async ({
     { name: "Users", href: "/admin/users", icon: Users, key: "users" },
   ];
 
+  const userName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "Admin";
+  const userEmail = user.emailAddresses?.[0]?.emailAddress || "";
+
   return (
     <div className="min-h-screen bg-base-100 flex">
-      {/* Sidebar - Fixed */}
       <aside className="w-64 bg-base-200 min-h-screen border-r border-base-300 hidden lg:block fixed left-0 top-0 bottom-0 overflow-y-auto">
-        {/* Logo Section */}
         <Link href={"/"}>
           <div className="p-6 border-b border-base-300">
             <div className="flex items-center gap-3">
@@ -86,7 +88,6 @@ const AdminLayout = async ({
           </div>
         </Link>
 
-        {/* Navigation */}
         <nav className="p-4">
           <ul className="space-y-2">
             {menuItems.map((item) => {
@@ -111,14 +112,13 @@ const AdminLayout = async ({
           </ul>
         </nav>
 
-        {/* User Info with Sign Out */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-base-300 bg-base-200">
           <div className="flex items-center gap-3 mb-3">
             <div className="avatar placeholder">
               <div className="bg-primary text-primary-content rounded-full w-10">
                 <span className="text-sm">
-                  {session.user.name
-                    ?.split(" ")
+                  {userName
+                    .split(" ")
                     .map((n) => n[0])
                     .join("")
                     .toUpperCase()
@@ -128,25 +128,22 @@ const AdminLayout = async ({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-base-content truncate">
-                {session.user.name}
+                {userName}
               </p>
               <p className="text-xs text-base-content/60 truncate">
-                {session.user.email}
+                {userEmail}
               </p>
             </div>
           </div>
 
-          {/* Sign Out Button */}
           <SignOutSection
-            userName={session.user.name || ""}
-            userEmail={session.user.email || ""}
+            userName={userName}
+            userEmail={userEmail}
           />
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col lg:ml-64">
-        {/* Mobile Menu - Fixed Top Bar */}
         <div className="lg:hidden fixed top-0 left-0 right-0 bg-base-200 border-b border-base-300 z-50 h-16">
           <div className="flex items-center justify-between p-4 h-full">
             <div className="flex items-center gap-2">
@@ -192,8 +189,8 @@ const AdminLayout = async ({
                 })}
                 <li className="border-t border-base-300 mt-2 pt-2">
                   <SignOutSection
-                    userName={session.user.name || ""}
-                    userEmail={session.user.email || ""}
+                    userName={userName}
+                    userEmail={userEmail}
                     mobileView={true}
                   />
                 </li>
@@ -202,7 +199,6 @@ const AdminLayout = async ({
           </div>
         </div>
 
-        {/* Scrollable Main Content */}
         <main className="flex-1 lg:pt-0 pt-16 overflow-auto">
           <div className="p-6">{children}</div>
         </main>

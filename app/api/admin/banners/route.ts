@@ -1,63 +1,60 @@
-import dbConnect from "@/lib/dbConnect";
-import BannerModel from "@/lib/models/BannerModel";
-import { getServerSession } from "next-auth";
-import { options } from "../../auth/[...nextauth]/options";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { banners } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const session = await getServerSession(options);
+  const { sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
-    console.log("Unauthorized access attempt");
+  if (!isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    await dbConnect();
-    const products = await BannerModel.find();
-    if (!products) {
-      return NextResponse.json(
-        { message: "Product not found" },
-        { status: 404 }
-      );
-    }
-    return NextResponse.json(products);
+    const allBanners = await db.select().from(banners);
+    return NextResponse.json(allBanners);
   } catch (error) {
-    console.error("Error fetching product:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch product." },
+      { success: false, error: "Failed to fetch banners." },
       { status: 500 }
     );
   }
 }
 
 export async function POST() {
-  const session = await getServerSession(options);
+  const { sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
-    console.log("Unauthorized access attempt");
+  if (!isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-  await dbConnect();
-  const banner = new BannerModel({
+
+  const id = crypto.randomUUID();
+  const banner = {
+    id,
     name: "sample name",
     slug: "sample-name-" + Math.random(),
     image: "/images/shirt1.jpg",
-  });
+  };
+
   try {
-    await banner.save();
-    return Response.json(
-      { message: "Banner created successfully", banner },
-      {
-        status: 201,
-      }
+    await db.insert(banners).values(banner);
+    const created = await db
+      .select()
+      .from(banners)
+      .where(eq(banners.id, id))
+      .limit(1)
+      .then((r) => r[0]);
+    return NextResponse.json(
+      { message: "Banner created successfully", banner: created },
+      { status: 201 }
     );
   } catch (err: any) {
-    return Response.json(
+    return NextResponse.json(
       { message: err.message },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

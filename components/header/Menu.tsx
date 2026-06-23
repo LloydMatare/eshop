@@ -1,10 +1,10 @@
 "use client";
 import useCartService from "@/lib/hooks/useCartStore";
 import useLayoutService from "@/lib/hooks/useLayout";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { useUser, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { SearchBox } from "./SearchBox";
+import { ShoppingCart, User, LogOut, LayoutDashboard, Package, History, Sun, Moon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,130 +18,144 @@ const Menu = () => {
   const { items, init } = useCartService();
   const [mounted, setMounted] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { signOut } = useClerk();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const signoutHandler = () => {
-    signOut({ callbackUrl: "/signin" });
+    signOut({ redirectUrl: "/signin" });
     init();
     setShowDialog(false);
   };
 
-  const { data: session } = useSession();
+  const { user } = useUser();
   const { theme, toggleTheme } = useLayoutService();
 
-  return (
-    <>
-      <div className="hidden md:block">
-        <SearchBox />
-      </div>
-      <div>
-        <ul className="flex items-center gap-2">
-          <li>
-            {mounted && (
-              <button
-                onClick={toggleTheme}
-                className="btn btn-ghost btn-circle hover:bg-primary/10 transition-all"
-                aria-label="Toggle theme"
-              >
-                {theme === "dark" ? (
-                  <svg
-                    className="w-6 h-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,6.34Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
-                  </svg>
-                ) : (
-                  <svg
-                    className="w-6 h-6"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
-                  </svg>
-                )}
-              </button>
-            )}
-          </li>
-          <li>
-            <Link className="btn btn-ghost rounded-full gap-2 hover:bg-primary/10" href="/cart">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <span className="hidden sm:inline">Cart</span>
-              {mounted && items.length !== 0 && (
-                <div className="badge badge-primary badge-sm">
-                  {items.reduce((a, c) => a + c.qty, 0)}
-                </div>
-              )}
-            </Link>
-          </li>
-          {session && session.user ? (
-            <li>
-              <div className="dropdown dropdown-bottom dropdown-end">
-                <label
-                  tabIndex={0}
-                  className="btn btn-ghost rounded-btn"
-                  style={{ textTransform: "capitalize" }}
-                >
-                  {session.user.name}
-                </label>
-                <ul
-                  tabIndex={0}
-                  className="menu dropdown-content z-[1] p-2 shadow bg-base-300 rounded-box w-52"
-                >
-                  {session.user.isAdmin && (
-                    <li>
-                      <Link href="/admin/dashboard">Admin Dashboard</Link>
-                    </li>
-                  )}
-                  <li>
-                    <Link href="/order-tracking">Order tracking</Link>
-                  </li>
-                  <li>
-                    <Link href="/order-history">Order history</Link>
-                  </li>
-                  <li>
-                    <Link href="/profile">Profile</Link>
-                  </li>
-                  <li>
-                    <button type="button" onClick={() => setShowDialog(true)}>
-                      Sign out
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </li>
-          ) : (
-            <li>
-              <button
-                className="btn btn-ghost rounded-btn"
-                type="button"
-                onClick={() => signIn()}
-              >
-                Sign in
-              </button>
-            </li>
-          )}
-        </ul>
-      </div>
+  const cartCount = mounted ? items.reduce((a, c) => a + c.qty, 0) : 0;
 
-      {/* Sign Out Confirmation Dialog */}
+  return (
+    <div className="flex items-center gap-1.5">
+      {/* Theme Toggle */}
+      {mounted && (
+        <button
+          onClick={toggleTheme}
+          className="relative w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all"
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? (
+            <Sun className="w-[18px] h-[18px]" />
+          ) : (
+            <Moon className="w-[18px] h-[18px]" />
+          )}
+        </button>
+      )}
+
+      {/* Cart */}
+      <Link
+        href="/cart"
+        className="relative w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all"
+      >
+        <ShoppingCart className="w-[18px] h-[18px]" />
+        {mounted && cartCount > 0 && (
+          <span className="absolute -top-1 -right-1 w-[18px] h-[18px] flex items-center justify-center bg-primary text-primary-foreground text-[10px] font-bold rounded-full shadow-lg shadow-primary/30">
+            {cartCount > 99 ? "99+" : cartCount}
+          </span>
+        )}
+      </Link>
+
+      {/* User */}
+      {user ? (
+        <div className="relative">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all"
+          >
+            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
+              {user.fullName?.charAt(0)?.toUpperCase() || user.emailAddresses?.[0]?.emailAddress?.charAt(0)?.toUpperCase() || "U"}
+            </div>
+          </button>
+
+          {showUserMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+              <div className="absolute right-0 top-full mt-2 z-50 w-56 bg-popover border border-border rounded-xl shadow-2xl shadow-black/5 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-3 border-b border-border">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {user.fullName || "User"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {user.primaryEmailAddress?.emailAddress || ""}
+                  </p>
+                </div>
+                <div className="p-1.5">
+                  {user.publicMetadata?.isAdmin === true && (
+                    <Link
+                      href="/admin/dashboard"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      Dashboard
+                    </Link>
+                  )}
+                  <Link
+                    href="/order-history"
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                  >
+                    <History className="w-4 h-4" />
+                    Order History
+                  </Link>
+                  <Link
+                    href="/order-tracking"
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                  >
+                    <Package className="w-4 h-4" />
+                    Track Orders
+                  </Link>
+                  <Link
+                    href="/profile"
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    Profile
+                  </Link>
+                  <hr className="my-1.5 border-border" />
+                  <button
+                    onClick={() => { setShowUserMenu(false); setShowDialog(true); }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <Link
+          href="/signin"
+          className="h-9 px-4 flex items-center gap-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+        >
+          <User className="w-[16px] h-[16px]" />
+          <span className="hidden sm:inline">Sign In</span>
+        </Link>
+      )}
+
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="bg-base-100 text-base-content border-base-300">
-          <DialogTitle className="text-base-content">Sign Out</DialogTitle>
-          <DialogDescription className="text-base-content/70">
+        <DialogContent className="sm:max-w-[360px]">
+          <DialogTitle>Sign Out</DialogTitle>
+          <DialogDescription>
             Are you sure you want to sign out?
           </DialogDescription>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              className="text-base-content border-base-300"
-              onClick={() => setShowDialog(false)}
-            >
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowDialog(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={signoutHandler}>
@@ -150,7 +164,7 @@ const Menu = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 

@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { signOut } from "next-auth/react";
+import { useClerk } from "@clerk/nextjs";
 import { LogOut } from "lucide-react";
 
-// Dialog components (you'll need to install or create these)
 import {
   Dialog,
   DialogContent,
@@ -26,10 +25,11 @@ export default function SignOutSection({
   mobileView = false,
 }: SignOutSectionProps) {
   const [showDialog, setShowDialog] = useState(false);
+  const { signOut } = useClerk();
 
   const signoutHandler = async () => {
     setShowDialog(false);
-    await signOut({ callbackUrl: "/" });
+    await signOut({ redirectUrl: "/" });
   };
 
   if (mobileView) {
@@ -43,7 +43,6 @@ export default function SignOutSection({
           <span>Sign Out</span>
         </button>
 
-        {/* Sign Out Confirmation Dialog */}
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogContent className="bg-base-100 text-base-content border-base-300">
             <DialogTitle className="text-base-content">Sign Out</DialogTitle>
@@ -78,7 +77,6 @@ export default function SignOutSection({
         Sign Out
       </button>
 
-      {/* Sign Out Confirmation Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="bg-base-100 text-base-content border-base-300">
           <DialogTitle className="text-base-content">Sign Out</DialogTitle>

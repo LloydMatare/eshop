@@ -5,7 +5,7 @@ import { formatId } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import {
@@ -53,7 +53,6 @@ export default function Products() {
   const [uploadedData, setUploadedData] = useState<any[]>([]);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
 
-  // Pagination and filters state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,7 +72,7 @@ export default function Products() {
       const data = await res.json();
       if (res.ok) {
         toast.success("Product deleted successfully", { id: toastId });
-        mutate(); // Refresh the products list
+        mutate();
       } else {
         toast.error(data.message, { id: toastId });
       }
@@ -99,7 +98,7 @@ export default function Products() {
         }
 
         toast.success("Product created successfully", { id: toastId });
-        mutate(); // Refresh the products list
+        mutate();
         router.push(`/admin/products/${data.product._id}`);
       } catch (error) {
         console.error("Error creating product:", error);
@@ -108,7 +107,6 @@ export default function Products() {
     }
   );
 
-  // Filter and paginate products
   const filteredProducts = useMemo(() => {
     if (!products) return [];
 
@@ -136,13 +134,11 @@ export default function Products() {
     currentPage * pageSize
   );
 
-  // Get unique categories
   const categories = useMemo(() => {
     if (!products) return [];
     return Array.from(new Set(products.map((p: Product) => p.category)));
   }, [products]);
 
-  // Reset to page 1 when filters change
   const handleFilterChange = () => {
     setCurrentPage(1);
   };
@@ -235,10 +231,8 @@ export default function Products() {
         </div>
       </div>
 
-      {/* Search and Filters */}
       <div className="bg-base-200 rounded-2xl p-6 mb-6 border border-base-300">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/50" />
             <input
@@ -264,7 +258,6 @@ export default function Products() {
             )}
           </div>
 
-          {/* Category Filter */}
           <select
             value={categoryFilter}
             onChange={(e) => {
@@ -281,7 +274,6 @@ export default function Products() {
             ))}
           </select>
 
-          {/* Stock Filter */}
           <select
             value={stockFilter}
             onChange={(e) => {
@@ -383,7 +375,6 @@ export default function Products() {
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-base-300">
             <div className="text-sm text-base-content/60">

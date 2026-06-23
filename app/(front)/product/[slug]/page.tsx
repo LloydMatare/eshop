@@ -1,6 +1,4 @@
-//@ts-nocheck
 import AddToCart from "@/components/products/AddToCart";
-import { convertDocToObj } from "@/lib/utils";
 import productService from "@/lib/services/productService";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,9 +16,10 @@ import ProductItem from "@/components/products/ProductItem";
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const product = await productService.getBySlug(params.slug);
+  const { slug } = await params;
+  const product = await productService.getBySlug(slug);
   if (!product) {
     return { title: "Product not found" };
   }
@@ -33,9 +32,10 @@ export async function generateMetadata({
 export default async function ProductDetails({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const product = await productService.getBySlug(params.slug);
+  const { slug } = await params;
+  const product = await productService.getBySlug(slug);
   if (!product) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
@@ -136,7 +136,7 @@ export default async function ProductDetails({
               <div className="space-y-4">
                 <AddToCart
                   item={{
-                    ...convertDocToObj(product),
+                    ...product,
                     qty: 0,
                     color: "",
                     size: "",
@@ -184,7 +184,7 @@ export default async function ProductDetails({
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               {filteredSimilar.map((item: any) => (
-                <ProductItem key={item.slug} product={convertDocToObj(item)} />
+                <ProductItem key={item.slug} product={item} />
               ))}
             </div>
           </div>

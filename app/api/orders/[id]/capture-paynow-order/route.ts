@@ -1,67 +1,64 @@
-//@ts-nocheck
-import { options } from "@/app/api/auth/[...nextauth]/options";
-import { auth } from "@/lib/auth";
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { paynow } from "@/lib/paynow";
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
-// Define a type for the request and params
-type Context = {
-  params: { id: string };
-};
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
-// Ensure the handler returns a Promise<Response>
-
-export async function POST(req: Request, context: Context) {
-  const session = await getServerSession(options);
+  const { id } = await params;
 
   try {
-    // Connect to the database
-    await dbConnect();
-
-    // Find the order by the ID from the request params
-    const order = await OrderModel.findById(context.params.id);
+    const order = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, id))
+      .limit(1)
+      .then((r) => r[0]);
 
     if (!order || !order.paymentPollUrl) {
-      return new Response(
-        JSON.stringify({
-          message: "Order not found or paymentPollUrl missing",
-        }),
+      return NextResponse.json(
+        { message: "Order not found or paymentPollUrl missing" },
         { status: 404 }
       );
     }
 
-    // Call PayNow to capture the order
     const paymentStatus = await paynow.capturePayNowOrder(order.paymentPollUrl);
 
-    // Check if the payment was successful
     if (paymentStatus.success) {
-      order.isPaid = true;
-      order.paidAt = new Date();
-      order.paymentResult = {
-        id: paymentStatus.id,
-        update_time: paymentStatus.update_time,
-        email_address: paymentStatus.email_address,
-      };
+      const updatedOrder = await db
+        .update(orders)
+        .set({
+          isPaid: true,
+          paidAt: new Date(),
+          paymentResult: {
+            id: paymentStatus.id,
+          },
+        })
+        .where(eq(orders.id, id))
+        .returning()
+        .then((r) => r[0]);
 
-      const updatedOrder = await order.save();
-
-      // Return the updated order details as the response
-      return new Response(JSON.stringify(updatedOrder), { status: 200 });
+      return NextResponse.json(updatedOrder, { status: 200 });
     } else {
-      return new Response(
-        JSON.stringify({ message: "Payment not completed" }),
+      return NextResponse.json(
+        { message: "Payment not completed" },
         { status: 400 }
       );
     }
   } catch (err) {
-    // Return a 500 error with the error message
-    return new Response(
-      JSON.stringify({
+    return NextResponse.json(
+      {
         message: err instanceof Error ? err.message : "Internal Server Error",
-      }),
+      },
       { status: 500 }
     );
   }

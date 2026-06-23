@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Pen, Trash, Plus } from "lucide-react";
 
 import AdminLoading from "@/components/admin/AdminLoading";

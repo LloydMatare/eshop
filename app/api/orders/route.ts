@@ -1,82 +1,82 @@
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
-import ProductModel from "@/lib/models/ProductModel";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { products, orders } from "@/lib/db/schema";
+import { eq, inArray } from "drizzle-orm";
 import { round2 } from "@/lib/utils";
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { options } from "../auth/[...nextauth]/options";
 import { OrderItem } from "@/lib/types";
 
 const calcPrices = (orderItems: OrderItem[]) => {
-  // Calculate the items price
   const itemsPrice = round2(
     orderItems.reduce((acc, item) => acc + item.price * item.qty, 0)
   );
-  // Calculate the shipping price
   const shippingPrice = round2(itemsPrice > 100 ? 0 : 10);
-  // Calculate the tax price
   const taxPrice = round2(Number((0.15 * itemsPrice).toFixed(2)));
-  // Calculate the total price
   const totalPrice = round2(itemsPrice + shippingPrice + taxPrice);
   return { itemsPrice, shippingPrice, taxPrice, totalPrice };
 };
 
-export async function POST(req: any) {
-  const session = await getServerSession(options);
-  console.log("Session", session);
+export async function POST(req: Request) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     const payload = await req.json();
-    await dbConnect();
-    const dbProductPrices = await ProductModel.find(
-      {
-        _id: { $in: payload.items.map((x: { _id: string }) => x._id) },
-      },
-      "price"
-    );
-    const dbOrderItems = payload.items.map((item: { _id: string }) => {
-      const product = dbProductPrices.find(
-        (prod) => prod._id.toString() === item._id.toString()
-      );
 
-      if (product) {
-        return {
-          ...item,
-          product: item._id,
-          price: product.price, // Correctly assigning the price here
-          _id: undefined,
-        };
+    const productIds = payload.items.map((x: { _id: string }) => x._id);
+    const dbProductPrices = await db
+      .select({ id: products.id, price: products.price })
+      .from(products)
+      .where(inArray(products.id, productIds));
+
+    const dbOrderItems: OrderItem[] = payload.items.map(
+      (item: { _id: string }) => {
+        const product = dbProductPrices.find(
+          (prod) => prod.id === item._id
+        );
+        if (product) {
+          return {
+            ...item,
+            product: item._id,
+            price: Number(product.price),
+          };
+        }
       }
-      // Handle the case where product is not found, if necessary
-    });
+    );
 
     const { itemsPrice, taxPrice, shippingPrice, totalPrice } =
       calcPrices(dbOrderItems);
 
-    const newOrder = new OrderModel({
+    const id = crypto.randomUUID();
+    await db.insert(orders).values({
+      id,
+      userId,
       items: dbOrderItems,
-      itemsPrice,
-      taxPrice,
-      shippingPrice,
-      totalPrice,
+      itemsPrice: String(itemsPrice),
+      taxPrice: String(taxPrice),
+      shippingPrice: String(shippingPrice),
+      totalPrice: String(totalPrice),
       shippingAddress: payload.shippingAddress,
       paymentMethod: payload.paymentMethod,
-      user: session?.user._id,
     });
 
-    const createdOrder = await newOrder.save();
+    const createdOrder = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, id))
+      .limit(1)
+      .then((r) => r[0]);
+
     return NextResponse.json(
       { message: "Order has been created", order: createdOrder },
-      {
-        status: 201,
-      }
+      { status: 201 }
     );
   } catch (err: any) {
     return NextResponse.json(
       { message: err.message },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

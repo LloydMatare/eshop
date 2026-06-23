@@ -1,9 +1,9 @@
 "use client";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import { useState } from "react";
@@ -21,7 +21,7 @@ export default function OrderDetails({
   const [loading, setLoading] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState(null);
   const { data, error } = useSWR(`/api/orders/${orderId}`, fetcher);
-  const { data: session } = useSession();
+  const { user } = useUser();
   const { trigger: deliverOrder, isMutating: isDelivering } = useSWRMutation(
     `/api/orders/${orderId}`,
     async () => {
@@ -40,7 +40,6 @@ export default function OrderDetails({
     }
   );
 
-  // Call this function when the user returns from PayNow
   const createPayNowOrder = async () => {
     setLoading(true);
     console.log("Creating PayNow order...");
@@ -51,8 +50,8 @@ export default function OrderDetails({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            returnUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/order/${orderId}`, // Redirect after payment
-            resultUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/${orderId}/verify-paynow`, // IPN notification
+            returnUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/order/${orderId}`,
+            resultUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/${orderId}/verify-paynow`,
           }),
         }
       );
@@ -64,7 +63,7 @@ export default function OrderDetails({
         setPaymentUrl(order.link);
         console.log("Redirecting to PayNow:", order.link);
         checkOrderStatus();
-        window.location.href = order.link; // Redirect to PayNow
+        window.location.href = order.link;
       } else {
         console.error(
           "Failed to create PayNow order. No payment link received."
@@ -152,7 +151,6 @@ export default function OrderDetails({
   return (
     <div className="min-h-screen bg-base-100">
       <div className="container mx-auto px-4 lg:px-8 py-8">
-        {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -190,9 +188,7 @@ export default function OrderDetails({
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Order Details */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Shipping Address */}
             <div className="bg-base-200 rounded-2xl p-6 border border-base-300">
               <div className="flex items-start gap-3 mb-4">
                 <div className="bg-primary/10 p-3 rounded-xl">
@@ -223,7 +219,6 @@ export default function OrderDetails({
               )}
             </div>
 
-            {/* Payment Method */}
             <div className="bg-base-200 rounded-2xl p-6 border border-base-300">
               <div className="flex items-start gap-3 mb-4">
                 <div className="bg-primary/10 p-3 rounded-xl">
@@ -247,7 +242,6 @@ export default function OrderDetails({
               )}
             </div>
 
-            {/* Order Items */}
             <div className="bg-base-200 rounded-2xl p-6 border border-base-300">
               <div className="flex items-center gap-3 mb-6">
                 <div className="bg-primary/10 p-3 rounded-xl">
@@ -293,7 +287,6 @@ export default function OrderDetails({
             </div>
           </div>
 
-          {/* Order Summary Sidebar */}
           <div>
             <div className="bg-base-200 rounded-2xl p-6 border border-base-300 sticky top-24">
               <h2 className="text-2xl font-bold text-base-content mb-6">Order Summary</h2>
@@ -318,7 +311,6 @@ export default function OrderDetails({
                 </div>
               </div>
 
-              {/* Payment Buttons */}
               {!isPaid && paymentMethod === "PayPal" && (
                 <div className="mb-4">
                   <PayPalScriptProvider options={{ clientId: paypalClientId }}>
@@ -350,7 +342,7 @@ export default function OrderDetails({
                 </button>
               )}
 
-              {session?.user.isAdmin && !isDelivered && (
+              {user?.publicMetadata?.isAdmin === true && !isDelivered && (
                 <button
                   className="btn btn-success w-full rounded-full gap-2"
                   onClick={() => deliverOrder()}

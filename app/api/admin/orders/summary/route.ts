@@ -1,69 +1,70 @@
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
-import UserModel from "@/lib/models/UserModel";
-import ProductModel from "@/lib/models/ProductModel";
-import { getServerSession } from "next-auth";
-
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { orders, products, users } from "@/lib/db/schema";
+import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { options } from "@/app/api/auth/[...nextauth]/options";
 
 export async function GET() {
-  const session = await getServerSession(options);
+  const { sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
-    console.log("Unauthorized access attempt");
+  if (!isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
+
   try {
-    await dbConnect();
+    const ordersCountResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(orders);
+    const productsCountResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(products);
+    const usersCountResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users);
 
-    const ordersCount = await OrderModel.countDocuments();
-    const productsCount = await ProductModel.countDocuments();
-    const usersCount = await UserModel.countDocuments();
+    const ordersCount = Number(ordersCountResult[0].count);
+    const productsCount = Number(productsCountResult[0].count);
+    const usersCount = Number(usersCountResult[0].count);
 
-    const ordersPriceGroup = await OrderModel.aggregate([
-      {
-        $group: {
-          _id: null,
-          sales: { $sum: "$totalPrice" },
-        },
-      },
-    ]);
-    const ordersPrice =
-      ordersPriceGroup.length > 0 ? ordersPriceGroup[0].sales : 0;
+    const ordersPriceGroup = await db
+      .select({
+        sales: sql<string>`sum(${orders.totalPrice})`,
+      })
+      .from(orders);
+    const ordersPrice = ordersPriceGroup[0]?.sales
+      ? Number(ordersPriceGroup[0].sales)
+      : 0;
 
-    const salesData = await OrderModel.aggregate([
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-          totalOrders: { $sum: 1 },
-          totalSales: { $sum: "$totalPrice" },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
+    const salesData = await db
+      .select({
+        _id: sql<string>`to_char(${orders.createdAt}, 'YYYY-MM')`,
+        totalOrders: sql<number>`count(*)`,
+        totalSales: sql<string>`sum(${orders.totalPrice})`,
+      })
+      .from(orders)
+      .groupBy(sql`to_char(${orders.createdAt}, 'YYYY-MM')`)
+      .orderBy(sql`to_char(${orders.createdAt}, 'YYYY-MM')`);
 
-    const productsData = await ProductModel.aggregate([
-      {
-        $group: {
-          _id: "$category",
-          totalProducts: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
+    const productsData = await db
+      .select({
+        _id: products.category,
+        totalProducts: sql<number>`count(*)`,
+      })
+      .from(products)
+      .groupBy(products.category)
+      .orderBy(products.category);
 
-    const usersData = await UserModel.aggregate([
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-          totalUsers: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
+    const usersData = await db
+      .select({
+        _id: sql<string>`to_char(${users.createdAt}, 'YYYY-MM')`,
+        totalUsers: sql<number>`count(*)`,
+      })
+      .from(users)
+      .groupBy(sql`to_char(${users.createdAt}, 'YYYY-MM')`)
+      .orderBy(sql`to_char(${users.createdAt}, 'YYYY-MM')`);
 
-    return Response.json({
+    return NextResponse.json({
       ordersCount,
       productsCount,
       usersCount,
@@ -73,9 +74,8 @@ export async function GET() {
       usersData,
     });
   } catch (error) {
-    console.error("Error fetching product:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch product." },
+      { success: false, error: "Failed to fetch summary." },
       { status: 500 }
     );
   }

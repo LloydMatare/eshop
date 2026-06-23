@@ -1,20 +1,22 @@
 import AdminLayout from '@/components/admin/AdminLayout'
 import Form from './Form'
 
-export function generateMetadata({ params }: { params: { id: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     return {
-        title: `Edit Banner ${params.id}`,
+        title: `Edit Banner ${id}`,
     }
 }
 
-export default function BannerEditPage({
+export default async function BannerEditPage({
     params,
 }: {
-    params: { id: string }
+    params: Promise<{ id: string }>
 }) {
+    const { id } = await params;
     return (
         <AdminLayout activeItem="banners">
-            <Form bannerId={params.id} />
+            <Form bannerId={id} />
         </AdminLayout>
     )
 }

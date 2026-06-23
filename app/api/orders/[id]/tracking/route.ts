@@ -1,6 +1,7 @@
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
-import ProductModel from "@/lib/models/ProductModel";
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 const validStatuses = [
   "Order Received",
@@ -12,34 +13,26 @@ const validStatuses = [
 ];
 
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  await dbConnect();
-
-  const { id } = params;
-
+  const { id } = await params;
   try {
-    // Find the order by ID and populate tracking data
-    const order = await OrderModel.findById(id);
+    const order = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, id))
+      .limit(1);
 
-    if (!order) {
-      return new Response(JSON.stringify({ message: "Order not found" }), {
-        status: 404,
-      });
+    if (!order.length) {
+      return NextResponse.json({ message: "Order not found" }, { status: 404 });
     }
 
-    // Return tracking data
-    return new Response(JSON.stringify({ tracking: order.tracking }), {
-      status: 200,
-    });
+    return NextResponse.json({ tracking: order[0].tracking });
   } catch (error) {
     console.error("Error fetching tracking data:", error);
-    return new Response(
-      JSON.stringify({
-        message:
-          error instanceof Error ? error.message : "An unknown error occurred",
-      }),
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : "An unknown error occurred" },
       { status: 500 }
     );
   }
@@ -47,54 +40,45 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  await dbConnect();
-
-  const { id } = params;
-
+  const { id } = await params;
   const { status, message } = await req.json();
 
-  // Validate input
   if (!status || !validStatuses.includes(status)) {
-    return new Response(JSON.stringify({ message: "Invalid status" }), {
-      status: 400,
-    });
+    return NextResponse.json({ message: "Invalid status" }, { status: 400 });
   }
 
   try {
-    // Find the order by ID
-    const order = await OrderModel.findById(id);
+    const order = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, id))
+      .limit(1);
 
-    if (!order) {
-      return new Response(JSON.stringify({ message: "Order not found" }), {
-        status: 404,
-      });
+    if (!order.length) {
+      return NextResponse.json({ message: "Order not found" }, { status: 404 });
     }
 
-    // Add tracking information
-    order.tracking.push({
-      status,
-      message,
-      timestamp: new Date(),
+    const currentTracking = order[0].tracking || [];
+    const updatedTracking = [
+      ...currentTracking,
+      { status, message, timestamp: new Date().toISOString() },
+    ];
+
+    await db
+      .update(orders)
+      .set({ tracking: updatedTracking })
+      .where(eq(orders.id, id));
+
+    return NextResponse.json({
+      message: "Tracking updated successfully",
+      tracking: updatedTracking,
     });
-
-    await order.save();
-
-    return new Response(
-      JSON.stringify({
-        message: "Tracking updated successfully",
-        tracking: order.tracking,
-      }),
-      { status: 200 }
-    );
   } catch (error) {
     console.error("Error updating tracking data:", error);
-    return new Response(
-      JSON.stringify({
-        message:
-          error instanceof Error ? error.message : "An unknown error occurred",
-      }),
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : "An unknown error occurred" },
       { status: 500 }
     );
   }

@@ -1,24 +1,19 @@
-// /lib/types.ts
-export type AuthUser = {
-  _id: string;
-  email: string;
+export type Banner = {
+  id: string;
   name: string;
-  isAdmin: boolean;
+  slug: string;
+  image: string;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 };
 
-export type Context = {
-  params: { id: string }; // Modify according to your route parameters
-  user?: AuthUser; // Optional user property to hold authenticated user info
-};
-
-// Updated Product type
 export type Product = {
-  _id: string; // Ensure _id is always treated as a string
+  id: string;
   part: string;
   name: string;
   slug: string;
   image?: string;
-  banner?: string; // Optional banner field
+  banner?: string;
   price: number;
   brand: string;
   description: string;
@@ -26,8 +21,10 @@ export type Product = {
   rating: number;
   numReviews: number;
   countInStock: number;
-  colors?: string[]; // Optional colors array
-  sizes?: string[]; // Optional sizes array
+  colors?: string[];
+  sizes?: string[];
+  isFeatured?: boolean;
+  tracking?: { status: string; timestamp: string; message?: string }[];
 };
 
 export interface ShippingAddress {
@@ -39,7 +36,7 @@ export interface ShippingAddress {
 }
 
 export interface OrderItem {
-  product: string; // Assuming ObjectId will be stored as a string
+  product: string;
   name: string;
   slug: string;
   qty: number;

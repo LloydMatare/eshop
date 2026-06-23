@@ -1,14 +1,15 @@
 "use client";
 import useSWRMutation from "swr/mutation";
 import useSWR from "swr";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import Link from "next/link";
 import { ValidationRule, useForm } from "react-hook-form";
 import { useEffect } from "react";
 import { formatId } from "@/lib/utils";
+import { Banner } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { Banner } from "@/lib/models/BannerModel";
 import { fetcher } from "@/lib/services/fetcher";
+import { upload } from "@vercel/blob/client";
 
 export default function BannerEditForm({ bannerId }: { bannerId: string }) {
   const { data: product, error } = useSWR(
@@ -90,25 +91,12 @@ export default function BannerEditForm({ bannerId }: { bannerId: string }) {
   const uploadHandler = async (e: any) => {
     const toastId = toast.loading("Uploading image...");
     try {
-      const resSign = await fetch("/api/cloudinary-sign", {
-        method: "POST",
-      });
-      const { signature, timestamp } = await resSign.json();
       const file = e.target.files[0];
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("signature", signature);
-      formData.append("timestamp", timestamp);
-      formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY!);
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-      const data = await res.json();
-      setValue("image", data.secure_url);
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      setValue("image", blob.url);
       toast.success("File uploaded successfully", {
         id: toastId,
       });

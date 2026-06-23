@@ -1,9 +1,9 @@
 "use client";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import {
   User,
   Mail,
@@ -23,7 +23,7 @@ type Inputs = {
 };
 
 const Form = () => {
-  const { data: session, update } = useSession();
+  const { user, isLoaded } = useUser();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
 
@@ -42,52 +42,30 @@ const Form = () => {
   });
 
   useEffect(() => {
-    if (session && session.user) {
-      setValue("name", session.user.name!);
-      setValue("email", session.user.email!);
+    if (user) {
+      setValue("name", user.fullName || "");
+      setValue("email", user.primaryEmailAddress?.emailAddress || "");
     }
-  }, [router, session, setValue]);
+  }, [user, setValue]);
 
   const formSubmit: SubmitHandler<Inputs> = async (form) => {
-    const { name, email, password } = form;
+    const { name } = form;
     try {
-      const res = await fetch("/api/auth/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-        }),
+      if (!user) return;
+
+      const [firstName, ...lastNameParts] = name.split(" ");
+      await user.update({
+        firstName,
+        lastName: lastNameParts.join(" ") || undefined,
       });
-      if (res.status === 200) {
-        toast.success("Profile updated successfully");
-        const newSession = {
-          ...session,
-          user: {
-            ...session?.user,
-            name,
-            email,
-          },
-        };
-        await update(newSession);
-        setIsEditing(false);
-      } else {
-        const data = await res.json();
-        toast.error(data.message || "error");
-      }
+
+      toast.success("Profile updated successfully");
+      setIsEditing(false);
     } catch (err: any) {
-      const error =
-        err.response && err.response.data && err.response.data.message
-          ? err.response.data.message
-          : err.message;
-      toast.error(error);
+      toast.error(err.errors?.[0]?.message || err.message || "error");
     }
   };
 
-  // Get user initials for avatar
   const getUserInitials = (name: string) => {
     if (!name) return "U";
     return name
@@ -97,10 +75,18 @@ const Form = () => {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-base-100 py-8 flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-base-100 py-8">
       <div className="container mx-auto px-4 lg:px-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-base-content mb-2">
             My Profile
@@ -111,27 +97,24 @@ const Form = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Card - Left Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-base-200 rounded-2xl p-6 border border-base-300">
-              {/* Avatar Section */}
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="avatar placeholder mb-4">
                   <div className="bg-gradient-to-br from-primary to-secondary text-primary-content rounded-full w-24 h-24">
                     <span className="text-3xl font-bold">
-                      {getUserInitials(session?.user?.name || "")}
+                      {getUserInitials(user?.fullName || "")}
                     </span>
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-base-content mb-1">
-                  {session?.user?.name}
+                  {user?.fullName}
                 </h2>
                 <p className="text-base-content/60 text-sm mb-4">
-                  {session?.user?.email}
+                  {user?.primaryEmailAddress?.emailAddress}
                 </p>
 
-                {/* Account Type Badge */}
-                {session?.user?.isAdmin && (
+                {user?.publicMetadata?.isAdmin === true && (
                   <div className="badge badge-primary gap-2">
                     <Shield className="w-3 h-3" />
                     Administrator
@@ -141,14 +124,13 @@ const Form = () => {
 
               <div className="divider"></div>
 
-              {/* Account Info */}
               <div className="space-y-3">
                 <div className="flex items-center gap-3 text-sm">
                   <User className="w-4 h-4 text-base-content/50" />
                   <div>
                     <p className="text-base-content/60 text-xs">Full Name</p>
                     <p className="text-base-content font-medium">
-                      {session?.user?.name}
+                      {user?.fullName}
                     </p>
                   </div>
                 </div>
@@ -159,7 +141,7 @@ const Form = () => {
                       Email Address
                     </p>
                     <p className="text-base-content font-medium">
-                      {session?.user?.email}
+                      {user?.primaryEmailAddress?.emailAddress}
                     </p>
                   </div>
                 </div>
@@ -168,7 +150,9 @@ const Form = () => {
                   <div>
                     <p className="text-base-content/60 text-xs">Member Since</p>
                     <p className="text-base-content font-medium">
-                      {new Date().getFullYear()}
+                      {user?.createdAt
+                        ? new Date(user.createdAt).getFullYear()
+                        : new Date().getFullYear()}
                     </p>
                   </div>
                 </div>
@@ -176,7 +160,6 @@ const Form = () => {
             </div>
           </div>
 
-          {/* Edit Profile Form - Right Section */}
           <div className="lg:col-span-2">
             <div className="bg-base-200 rounded-2xl p-8 border border-base-300">
               <div className="flex items-center justify-between mb-6">
@@ -201,7 +184,6 @@ const Form = () => {
 
               {isEditing ? (
                 <form onSubmit={handleSubmit(formSubmit)} className="space-y-6">
-                  {/* Name Field */}
                   <div>
                     <label className="label" htmlFor="name">
                       <span className="label-text font-semibold">
@@ -227,7 +209,6 @@ const Form = () => {
                     )}
                   </div>
 
-                  {/* Email Field */}
                   <div>
                     <label className="label" htmlFor="email">
                       <span className="label-text font-semibold">
@@ -239,27 +220,19 @@ const Form = () => {
                       <input
                         type="text"
                         id="email"
-                        {...register("email", {
-                          required: "Email is required",
-                          pattern: {
-                            value: /[a-z0-9]+@[a-z]+\.[a-z]{2,3}/,
-                            message: "Email is invalid",
-                          },
-                        })}
-                        className="input input-bordered w-full pl-10"
-                        placeholder="you@example.com"
+                        value={user?.primaryEmailAddress?.emailAddress || ""}
+                        disabled
+                        className="input input-bordered w-full pl-10 opacity-60"
                       />
                     </div>
-                    {errors.email?.message && (
-                      <p className="text-error text-sm mt-1 ml-1">
-                        {errors.email.message}
-                      </p>
-                    )}
+                    <p className="text-xs text-base-content/50 mt-1">
+                      Email is managed by Clerk. To change your email, visit the
+                      Clerk profile.
+                    </p>
                   </div>
 
                   <div className="divider">Change Password (Optional)</div>
 
-                  {/* Password Field */}
                   <div>
                     <label className="label" htmlFor="password">
                       <span className="label-text font-semibold">
@@ -286,7 +259,6 @@ const Form = () => {
                     )}
                   </div>
 
-                  {/* Confirm Password Field */}
                   <div>
                     <label className="label" htmlFor="confirmPassword">
                       <span className="label-text font-semibold">
@@ -317,7 +289,6 @@ const Form = () => {
                     )}
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <button
                       type="submit"
@@ -337,8 +308,8 @@ const Form = () => {
                       type="button"
                       onClick={() => {
                         setIsEditing(false);
-                        setValue("name", session?.user?.name || "");
-                        setValue("email", session?.user?.email || "");
+                        setValue("name", user?.fullName || "");
+                        setValue("email", user?.primaryEmailAddress?.emailAddress || "");
                         setValue("password", "");
                         setValue("confirmPassword", "");
                       }}
@@ -352,14 +323,13 @@ const Form = () => {
                 </form>
               ) : (
                 <div className="space-y-6">
-                  {/* Display Mode */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-base-100 rounded-xl p-4 border border-base-300">
                       <label className="text-sm text-base-content/60 mb-1 block">
                         Full Name
                       </label>
                       <p className="text-base-content font-medium">
-                        {session?.user?.name}
+                        {user?.fullName}
                       </p>
                     </div>
                     <div className="bg-base-100 rounded-xl p-4 border border-base-300">
@@ -367,7 +337,7 @@ const Form = () => {
                         Email Address
                       </label>
                       <p className="text-base-content font-medium">
-                        {session?.user?.email}
+                        {user?.primaryEmailAddress?.emailAddress}
                       </p>
                     </div>
                   </div>

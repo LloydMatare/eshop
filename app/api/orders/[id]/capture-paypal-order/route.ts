@@ -1,45 +1,55 @@
-import { options } from "@/app/api/auth/[...nextauth]/options";
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { paypal } from "@/lib/paypal";
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(options);
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
-  await dbConnect();
-  const order = await OrderModel.findById(params.id);
+  const order = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, (await params).id))
+    .limit(1)
+    .then((r) => r[0]);
+
   if (order) {
     try {
       const { orderID } = await req.json();
       const captureData = await paypal.capturePayment(orderID);
-      order.isPaid = true;
-      order.paidAt = Date.now();
-      order.paymentResult = {
-        id: captureData.id,
-        status: captureData.status,
-        email_address: captureData.payer.email_address,
-      };
-      const updatedOrder = await order.save();
-      return Response.json(updatedOrder);
+      const updatedOrder = await db
+        .update(orders)
+        .set({
+          isPaid: true,
+          paidAt: new Date(),
+          paymentResult: {
+            id: captureData.id,
+            status: captureData.status,
+            email_address: captureData.payer.email_address,
+          },
+        })
+        .where(eq(orders.id, (await params).id))
+        .returning()
+        .then((r) => r[0]);
+      return NextResponse.json(updatedOrder);
     } catch (err: any) {
-      return Response.json(
+      return NextResponse.json(
         { message: err.message },
-        {
-          status: 500,
-        }
+        { status: 500 }
       );
     }
   } else {
-    return Response.json(
+    return NextResponse.json(
       { message: "Order not found" },
-      {
-        status: 404,
-      }
+      { status: 404 }
     );
   }
 }

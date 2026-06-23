@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react';
 import Modal from '@/components/Modal';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 
 interface TrackingData {
     tracking: Array<{
@@ -89,8 +88,6 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ orderId, session }) => {
         return <div className="text-red-500">Error: {error}</div>;
     }
 
-    const latestLocation = tracking.find(item => item.location);
-
     return (
         <div>
             <div className="flex items-center justify-between">
@@ -122,19 +119,6 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ orderId, session }) => {
                 </ul>
             ) : (
                 <div className="mt-2 text-red-500">No tracking data available</div>
-            )}
-
-            {/* Google Map for showing the location */}
-            {latestLocation && latestLocation.location && (
-                <LoadScript googleMapsApiKey="YOUR_GOOGLE_MAPS_API_KEY">
-                    <GoogleMap
-                        mapContainerStyle={{ width: '100%', height: '400px' }}
-                        center={latestLocation.location}
-                        zoom={10}
-                    >
-                        <Marker position={latestLocation.location} />
-                    </GoogleMap>
-                </LoadScript>
             )}
 
             {/* Modal for adding tracking updates */}

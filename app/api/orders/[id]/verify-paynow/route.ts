@@ -1,15 +1,14 @@
-import { options } from "@/app/api/auth/[...nextauth]/options";
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { paynow } from "@/lib/paynow";
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
-const MAX_RETRIES = 5; // Reduce retries to 5
-const RETRY_DELAY = 5000; // Reduce delay to 5 seconds
-const PAYNOW_TIMEOUT = 10000; // 10s fetch timeout
+const MAX_RETRIES = 5;
+const RETRY_DELAY = 5000;
+const PAYNOW_TIMEOUT = 10000;
 
-// Retry logic for checking PayNow payment status
 async function checkPaymentStatusWithRetry(
   pollUrl: string,
   retries: number = MAX_RETRIES
@@ -19,12 +18,9 @@ async function checkPaymentStatusWithRetry(
 
   while (attempt < retries) {
     try {
-      console.log(`Checking PayNow payment status (Attempt #${attempt + 1})`);
-
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), PAYNOW_TIMEOUT);
 
-      // Fetch payment status from PayNow
       paymentStatus = await paynow.capturePayNowOrder(pollUrl);
 
       clearTimeout(timeout);
@@ -33,42 +29,40 @@ async function checkPaymentStatusWithRetry(
         paymentStatus.success &&
         paymentStatus.paymentDetails?.status === "paid"
       ) {
-        return paymentStatus; // Payment confirmed
+        return paymentStatus;
       }
 
-      console.log(
-        `Payment still pending, retrying in ${RETRY_DELAY / 1000} seconds...`
-      );
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY)); // Delay before retry
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
     } catch (error) {
       console.error("Error checking payment status:", error);
     }
     attempt++;
   }
 
-  return paymentStatus; // Return last known status
+  return paymentStatus;
 }
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(options);
-  console.log("Received payment status for order:", params.id);
-  if (!session) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  await dbConnect();
-  const order = await OrderModel.findById(params.id);
+  const order = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, (await params).id))
+    .limit(1)
+    .then((r) => r[0]);
 
   if (!order) {
-    console.error("Order not found:", params.id);
     return NextResponse.json({ message: "Order not found" }, { status: 404 });
   }
 
   if (!order.paymentPollUrl) {
-    console.error("Missing PayNow poll URL for order:", order._id);
     return NextResponse.json(
       { message: "Poll URL not found" },
       { status: 400 }
@@ -76,53 +70,46 @@ export async function POST(
   }
 
   try {
-    console.log("Verifying payment for order:", order._id);
-    console.log("Using Poll URL:", order.paymentPollUrl);
-
     const paymentStatus = await checkPaymentStatusWithRetry(
       order.paymentPollUrl
     );
-    console.log("Received payment status:", paymentStatus);
 
     const paymentDetails = paymentStatus?.paymentDetails;
     if (!paymentDetails || !paymentDetails.status) {
-      console.error("Invalid payment status for order:", order._id);
       return NextResponse.json(
         { message: "Payment status unavailable" },
         { status: 500 }
       );
     }
 
-    // Update order status based on payment result
     switch (paymentDetails.status) {
       case "paid":
-        order.status = "paid";
-        order.isPaid = true;
-        order.paidAt = new Date();
-        order.paymentDetails = paymentDetails;
-        await order.save();
-        console.log("Payment successful for order:", order._id);
+        await db
+          .update(orders)
+          .set({
+            isPaid: true,
+            paidAt: new Date(),
+            paymentResult: paymentDetails,
+          })
+          .where(eq(orders.id, (await params).id));
         return NextResponse.json({ message: "Payment verified", isPaid: true });
 
       case "created":
       case "pending":
-        console.log("Payment still processing for order:", order._id);
         return NextResponse.json({
           message: "Payment pending, try again later",
           isPaid: false,
         });
 
       default:
-        console.warn("Unexpected payment status:", paymentDetails.status);
         return NextResponse.json({
           message: `Unexpected status: ${paymentDetails.status}`,
           isPaid: false,
         });
     }
   } catch (err) {
-    console.error("Error verifying PayNow payment:", err);
     return NextResponse.json(
-      { message: "Internal server error", err },
+      { message: "Internal server error" },
       { status: 500 }
     );
   }

@@ -1,37 +1,40 @@
-import { options } from "@/app/api/auth/[...nextauth]/options";
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { paypal } from "@/lib/paypal";
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(options);
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
-  await dbConnect();
+  const order = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, (await params).id))
+    .limit(1)
+    .then((r) => r[0]);
 
-  const order = await OrderModel.findById(params.id);
   if (order) {
     try {
-      const paypalOrder = await paypal.createOrder(order.totalPrice);
+      const paypalOrder = await paypal.createOrder(Number(order.totalPrice));
       return NextResponse.json(paypalOrder);
     } catch (err: any) {
       return NextResponse.json(
         { message: err.message },
-        {
-          status: 500,
-        }
+        { status: 500 }
       );
     }
   } else {
     return NextResponse.json(
       { message: "Order not found" },
-      {
-        status: 404,
-      }
+      { status: 404 }
     );
   }
 }

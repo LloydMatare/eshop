@@ -1,11 +1,11 @@
 'use client'
 import useSWRMutation from 'swr/mutation'
 import useSWR from 'swr'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import Link from 'next/link'
 import { ValidationRule, useForm } from 'react-hook-form'
 import { useEffect } from 'react'
-import { User } from '@/lib/models/UserModel'
+type User = { id: string; name: string; email: string; isAdmin: boolean; _id?: string }
 import { formatId } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 

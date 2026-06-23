@@ -1,11 +1,8 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
+import { shadcn } from "@clerk/ui/themes";
 import Providers from "@/components/Providers";
-import DrawerButton from "@/components/DrawerButton";
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/header/Header";
-import { getServerSession, Session } from "next-auth";
-import { options } from "./api/auth/[...nextauth]/options";
 
 export const metadata: Metadata = {
   title: "Compulink | Enterprise IT Solutions & Technology Services",
@@ -13,23 +10,15 @@ export const metadata: Metadata = {
     "Your trusted partner for enterprise IT solutions. Shop laptops, servers, networking equipment, and software licenses from top brands like Dell, HP, Cisco, and Microsoft.",
 };
 
-interface RootLayoutProps {
-  children: React.ReactNode; // Type for children elements
-  params: {
-    session?: Session | null; // Optional session prop
-    [key: string]: any; // Allow other params
-  };
-}
-
-export default async function RootLayout({ children }: RootLayoutProps) {
-  const session = await getServerSession(options);
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="bg-base-100 text-base-content">
-        <Providers session={session}>
-          <main>{children}</main>
-        </Providers>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
+      <body className="bg-background text-foreground">
+        <ClerkProvider appearance={{ theme: shadcn }}>
+          <Providers>
+            <main>{children}</main>
+          </Providers>
+        </ClerkProvider>
       </body>
     </html>
   );

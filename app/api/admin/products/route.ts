@@ -1,36 +1,44 @@
-import { getServerSession } from "next-auth";
-import dbConnect from "@/lib/dbConnect";
-import ProductModel from "@/lib/models/ProductModel";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { products } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { options } from "../../auth/[...nextauth]/options";
 
 export async function POST() {
-  const session = await getServerSession(options);
+  const { sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
+  if (!isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  await dbConnect();
+  const id = crypto.randomUUID();
   const randomId = Math.floor(Math.random() * 10000);
-  const product = new ProductModel({
+  const product = {
+    id,
     part: `PART-${randomId}`,
     name: "Sample Product",
     slug: "sample-product-" + Math.random(),
     image: "/images/shirt1.jpg",
-    price: 0,
+    price: "0",
     category: "Sample Category",
     brand: "Sample Brand",
     countInStock: 0,
     description: "Sample description",
-    rating: 0,
+    rating: "0",
     numReviews: 0,
-  });
+  };
 
   try {
-    await product.save();
+    await db.insert(products).values(product);
+    const created = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, id))
+      .limit(1)
+      .then((r) => r[0]);
     return NextResponse.json(
-      { message: "Product created successfully", product },
+      { message: "Product created successfully", product: created },
       { status: 201 }
     );
   } catch (err: any) {
@@ -39,25 +47,17 @@ export async function POST() {
 }
 
 export async function GET() {
-  const session = await getServerSession(options);
+  const { sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
-    console.log("Unauthorized access attempt");
+  if (!isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    await dbConnect();
-    const product = await ProductModel.find();
-    if (!product) {
-      return NextResponse.json(
-        { message: "Product not found" },
-        { status: 404 }
-      );
-    }
-    return NextResponse.json(product);
+    const allProducts = await db.select().from(products);
+    return NextResponse.json(allProducts);
   } catch (error) {
-    console.error("Error fetching product:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch product." },
       { status: 500 }

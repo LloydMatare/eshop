@@ -1,10 +1,11 @@
 "use client";
 
 import AdminLoading from "@/components/admin/AdminLoading";
-import { User } from "@/lib/models/UserModel";
+
+type User = { id: string; name: string; email: string; isAdmin: boolean; createdAt?: string };
 import { formatId } from "@/lib/utils";
 import Link from "next/link";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import { useState, useMemo } from "react";
@@ -31,7 +32,6 @@ export default function Users() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
-  // Pagination and filters state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,12 +61,11 @@ export default function Users() {
 
   const confirmDelete = () => {
     if (selectedUser) {
-      deleteUser({ userId: selectedUser._id });
+      deleteUser({ userId: selectedUser.id });
     }
     setIsDialogOpen(false);
   };
 
-  // Filter and paginate users
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     
@@ -90,12 +89,10 @@ export default function Users() {
     currentPage * pageSize
   );
 
-  // Reset to page 1 when filters change
   const handleFilterChange = () => {
     setCurrentPage(1);
   };
 
-  // Get user initials for avatar
   const getUserInitials = (name: string) => {
     return name
       .split(' ')
@@ -121,10 +118,8 @@ export default function Users() {
         </div>
       </div>
 
-      {/* Search and Filters */}
       <div className="bg-base-200 rounded-2xl p-6 mb-6 border border-base-300">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/50" />
             <input
@@ -150,7 +145,6 @@ export default function Users() {
             )}
           </div>
 
-          {/* Role Filter */}
           <select
             value={roleFilter}
             onChange={(e) => {
@@ -189,7 +183,7 @@ export default function Users() {
                 </tr>
               ) : (
                 paginatedUsers.map((user: User) => (
-                  <tr key={user._id} className="hover:bg-base-300/50 transition-colors">
+                  <tr key={user.id} className="hover:bg-base-300/50 transition-colors">
                     <td>
                       <div className="flex items-center gap-3">
                         <div className="avatar placeholder">
@@ -199,7 +193,7 @@ export default function Users() {
                         </div>
                         <div>
                           <div className="font-semibold">{user.name}</div>
-                          <div className="text-xs text-base-content/60 font-mono">{formatId(user._id)}</div>
+                          <div className="text-xs text-base-content/60 font-mono">{formatId(user.id)}</div>
                         </div>
                       </div>
                     </td>
@@ -220,7 +214,7 @@ export default function Users() {
                     <td>
                       <div className="flex items-center justify-end gap-2">
                         <Link
-                          href={`/admin/users/${user._id}`}
+                          href={`/admin/users/${user.id}`}
                           className="btn btn-sm btn-ghost gap-1 hover:bg-primary hover:text-primary-content transition-all"
                         >
                           <Pen size={14} />
@@ -242,7 +236,6 @@ export default function Users() {
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-base-300">
             <div className="text-sm text-base-content/60">
@@ -293,7 +286,6 @@ export default function Users() {
         )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="bg-base-100 text-base-content border-base-300">
           <DialogHeader>

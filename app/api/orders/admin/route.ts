@@ -1,20 +1,19 @@
-import { getServerSession } from "next-auth";
-import dbConnect from "@/lib/dbConnect";
-import OrderModel from "@/lib/models/OrderModel";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
 import { NextResponse } from "next/server";
-import { options } from "../../auth/[...nextauth]/options";
 
 export async function GET() {
-  const session = await getServerSession(options);
+  const { sessionClaims } = await auth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
 
-  if (!session || !session.user?.isAdmin) {
-    console.log("Unauthorized access attempt");
+  if (!isAdmin) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
+
   try {
-    await dbConnect();
-    const orders = await OrderModel.find({});
-    return NextResponse.json(orders, { status: 200 });
+    const allOrders = await db.select().from(orders);
+    return NextResponse.json(allOrders, { status: 200 });
   } catch (error) {
     return NextResponse.json(
       { message: "Internal Server Error" },

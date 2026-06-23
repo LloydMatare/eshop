@@ -1,16 +1,20 @@
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { products } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/dbConnect";
-import ProductModel from "@/lib/models/ProductModel";
 
-// GET Tracking Information
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  await dbConnect();
-
   try {
-    const product = await ProductModel.findById(params.id);
+    const product = await db
+      .select({ tracking: products.tracking })
+      .from(products)
+      .where(eq(products.id, (await params).id))
+      .limit(1)
+      .then((r) => r[0]);
 
     if (!product) {
       return NextResponse.json(
@@ -21,7 +25,6 @@ export async function GET(
 
     return NextResponse.json({ tracking: product.tracking });
   } catch (error) {
-    console.error("Error fetching tracking data:", error);
     return NextResponse.json(
       { message: "Error fetching tracking data" },
       { status: 500 }
@@ -29,40 +32,44 @@ export async function GET(
   }
 }
 
-// POST Update Tracking Information
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  await dbConnect();
-
   try {
     const { status, message } = await req.json();
 
-    const updatedProduct = await ProductModel.findByIdAndUpdate(
-      params.id,
-      {
-        $push: {
-          tracking: {
-            status,
-            message,
-            timestamp: new Date(),
-          },
-        },
-      },
-      { new: true }
-    );
+    const product = await db
+      .select({ tracking: products.tracking })
+      .from(products)
+      .where(eq(products.id, (await params).id))
+      .limit(1)
+      .then((r) => r[0]);
 
-    if (!updatedProduct) {
+    if (!product) {
       return NextResponse.json(
         { message: "Product not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ tracking: updatedProduct.tracking });
+    const newEntry = {
+      status,
+      message,
+      timestamp: new Date().toISOString(),
+    };
+
+    const tracking = [...(product.tracking || []), newEntry];
+
+    const updated = await db
+      .update(products)
+      .set({ tracking })
+      .where(eq(products.id, (await params).id))
+      .returning({ tracking: products.tracking })
+      .then((r) => r[0]);
+
+    return NextResponse.json({ tracking: updated.tracking });
   } catch (error) {
-    console.error("Error updating tracking data:", error);
     return NextResponse.json(
       { message: "Error updating tracking data" },
       { status: 500 }

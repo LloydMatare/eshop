@@ -1,11 +1,10 @@
 import { cache } from "react";
-import dbConnect from "../dbConnect";
-import BannerModel from "../models/BannerModel";
+import { db } from "@/lib/db";
+import { banners } from "@/lib/db/schema";
 
 const getBanners = cache(async () => {
-  await dbConnect();
-  const banner = await BannerModel.find().limit(3).lean();
-  return banner as any[];
+  const result = await db.select().from(banners).limit(3);
+  return result as any[];
 });
 
 export default getBanners;
