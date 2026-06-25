@@ -26,10 +26,15 @@ export async function POST(
   }
 
   try {
-    console.log("Creating PayNow order for:", { orderId: order.id, amount: Number(order.totalPrice) });
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined)
+      || `${req.headers.get('x-forwarded-proto') || 'https'}://${req.headers.get('host')}`;
+
+    console.log("Creating PayNow order for:", { orderId: order.id, amount: Number(order.totalPrice), baseUrl });
     const result = await paynow.createPayNowOrder(
       order.id,
-      Number(order.totalPrice)
+      Number(order.totalPrice),
+      baseUrl
     );
 
     if (!result.pollUrl) {

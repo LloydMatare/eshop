@@ -11,13 +11,17 @@ function createInstance() {
 export const paynow = {
   createPayNowOrder: async function createPayNowOrder(
     orderId: string,
-    amount: number
+    amount: number,
+    baseUrl?: string
   ) {
     const instance = createInstance();
 
-    const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || '').replace(/\/$/, '');
-    instance.resultUrl = `${baseUrl}/api/orders/${orderId}/verify-paynow`;
-    instance.returnUrl = `${baseUrl}/order/${orderId}`;
+    const resolvedUrl = (baseUrl || process.env.NEXT_PUBLIC_BASE_URL || '').replace(/\/$/, '');
+    if (!resolvedUrl.startsWith('http')) {
+      throw new Error(`NEXT_PUBLIC_BASE_URL is not set. Set it in your Vercel project environment variables (e.g. https://eshop-eta-ten.vercel.app)`);
+    }
+    instance.resultUrl = `${resolvedUrl}/api/orders/${orderId}/verify-paynow`;
+    instance.returnUrl = `${resolvedUrl}/order/${orderId}`;
 
     const payment = instance.createPayment(`Invoice_${orderId}`);
     payment.add(`Order ${orderId}`, amount);
