@@ -40,8 +40,6 @@ const Menu = () => {
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
 
 
-  console.log("User role :", user?.publicMetadata?.isAdmin)
-
   useEffect(() => {
     if (showUserMenu && userButtonRef.current) {
       const rect = userButtonRef.current.getBoundingClientRect();

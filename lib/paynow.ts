@@ -15,8 +15,9 @@ export const paynow = {
   ) {
     const instance = createInstance();
 
-    instance.resultUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/${orderId}/verify-paynow`;
-    instance.returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/order/${orderId}`;
+    const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || '').replace(/\/$/, '');
+    instance.resultUrl = `${baseUrl}/api/orders/${orderId}/verify-paynow`;
+    instance.returnUrl = `${baseUrl}/order/${orderId}`;
 
     const payment = instance.createPayment(`Invoice_${orderId}`);
     payment.add(`Order ${orderId}`, amount);
@@ -24,13 +25,17 @@ export const paynow = {
     try {
       const response = await instance.send(payment);
 
+      if (!response) {
+        throw new Error("PayNow API returned no response (check integration credentials and network connectivity)");
+      }
+
       if (response.success) {
         return {
           link: response.redirectUrl,
           pollUrl: response.pollUrl,
         };
       } else {
-        throw new Error("Failed to create PayNow payment");
+        throw new Error(response.error ? `PayNow error: ${response.error}` : "Failed to create PayNow payment");
       }
     } catch (error) {
       console.error("Error in createPayNowOrder:", error);
@@ -50,6 +55,12 @@ export const paynow = {
         paymentStatus = await instance.pollTransaction(pollUrl);
         console.log("Payment status received:", paymentStatus);
 
+        if (!paymentStatus) {
+          retryCount++;
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          continue;
+        }
+
         if (paymentStatus.status === "paid") {
           break;
         }
@@ -57,7 +68,7 @@ export const paynow = {
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
 
-      if (paymentStatus.status !== "paid") {
+      if (!paymentStatus || paymentStatus.status !== "paid") {
         console.error("Payment not completed after retries");
         return { success: false, message: "Payment not completed" };
       }

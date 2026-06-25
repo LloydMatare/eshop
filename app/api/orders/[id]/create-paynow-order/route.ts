@@ -26,12 +26,14 @@ export async function POST(
   }
 
   try {
-    const { link, pollUrl } = await paynow.createPayNowOrder(
+    console.log("Creating PayNow order for:", { orderId: order.id, amount: Number(order.totalPrice) });
+    const result = await paynow.createPayNowOrder(
       order.id,
       Number(order.totalPrice)
     );
 
-    if (!pollUrl) {
+    if (!result.pollUrl) {
+      console.error("PayNow poll URL missing in response:", result);
       return NextResponse.json(
         { message: "PayNow poll URL missing" },
         { status: 500 }
@@ -40,11 +42,12 @@ export async function POST(
 
     await db
       .update(orders)
-      .set({ paymentPollUrl: pollUrl })
+      .set({ paymentPollUrl: result.pollUrl })
       .where(eq(orders.id, (await params).id));
 
-    return NextResponse.json({ link });
+    return NextResponse.json({ link: result.link });
   } catch (err: any) {
-    return NextResponse.json({ message: err.message }, { status: 500 });
+    console.error("Failed to create PayNow order:", err);
+    return NextResponse.json({ message: err.message || "PayNow payment failed" }, { status: 500 });
   }
 }
