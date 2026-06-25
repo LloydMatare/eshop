@@ -96,7 +96,7 @@ export default function ResultContent() {
     <div className="p-6">
       <div className="w-full flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold mb-4">Order Summary</h1>
-        <Button onClick={() => router.push(`/order/${order.id}`)}>
+        <Button onClick={() => router.push(`/order/${order._id}`)}>
           Check Order
         </Button>
       </div>
