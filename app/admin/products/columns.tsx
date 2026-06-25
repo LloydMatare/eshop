@@ -17,6 +17,7 @@ export type ProductRow = {
   category: string
   countInStock: number
   rating: number
+  description?: string
 }
 
 export function createProductColumns(

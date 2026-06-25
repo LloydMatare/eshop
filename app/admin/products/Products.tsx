@@ -131,8 +131,8 @@ export default function Products() {
   }, [products, searchQuery, categoryFilter, stockFilter]);
 
   const categories = useMemo(() => {
-    if (!products) return [];
-    return Array.from(new Set(products.map((p: ProductRow) => p.category)));
+    if (!products) return [] as string[];
+    return [...new Set(products.map((p: ProductRow) => p.category))] as string[];
   }, [products]);
 
   const handleFilterChange = () => {};
