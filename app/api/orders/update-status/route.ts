@@ -1,14 +1,13 @@
-import { auth } from "@clerk/nextjs/server";
+import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function PATCH(req: Request) {
-  const { userId, sessionClaims } = await auth();
-  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
-
-  if (!userId || !isAdmin) {
+  try {
+    await requireAdmin();
+  } catch {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 

@@ -14,7 +14,7 @@ export default function OrderDetailsPage({
   const { user } = useUser();
 
   const session = user
-    ? { user: { isAdmin: user?.publicMetadata?.isAdmin === true } }
+    ? { user: { isAdmin: user?.publicMetadata?.isAdmin == true } }
     : null;
 
   return (

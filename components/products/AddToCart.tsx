@@ -28,7 +28,7 @@ export default function AddToCart({ item }: { item: OrderItem }) {
     </div>
   ) : (
     <button
-      className="btn btn-primary w-full"
+      className="btn w-full bg-gradient-to-r from-primary to-chart-2 text-white border-none hover:scale-105 transition-all"
       type="button"
       onClick={addToCartHandler}
     >

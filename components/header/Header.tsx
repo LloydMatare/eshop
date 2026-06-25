@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Cpu, Menu as MenuIcon, Phone, Truck } from "lucide-react";
+import { Cpu, Phone, Truck } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SearchBox } from "./SearchBox";
 import Menu from "./Menu";
 
@@ -44,12 +45,7 @@ const Header = () => {
           <div className="flex items-center justify-between h-16 gap-4">
             {/* Left: Hamburger + Logo */}
             <div className="flex items-center gap-3">
-              <label
-                htmlFor="my-drawer"
-                className="flex lg:hidden w-9 h-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all cursor-pointer"
-              >
-                <MenuIcon className="w-5 h-5" />
-              </label>
+              <SidebarTrigger className="flex lg:hidden w-9 h-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all" />
 
               <Link href="/" className="flex items-center gap-2.5 shrink-0">
                 <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">

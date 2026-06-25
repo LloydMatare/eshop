@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { products } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -8,10 +8,9 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { sessionClaims } = await auth();
-  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
-
-  if (!isAdmin) {
+  try {
+    await requireAdmin(req);
+  } catch {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
@@ -41,10 +40,9 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { sessionClaims } = await auth();
-  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
-
-  if (!isAdmin) {
+  try {
+    await requireAdmin(req);
+  } catch {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
@@ -98,10 +96,9 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { sessionClaims } = await auth();
-  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
-
-  if (!isAdmin) {
+  try {
+    await requireAdmin(req);
+  } catch {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 

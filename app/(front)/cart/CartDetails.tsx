@@ -2,6 +2,8 @@
 "use client";
 import useCartService from "@/lib/hooks/useCartStore";
 import { Trash, Minus, Plus, ShoppingBag, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -142,13 +144,13 @@ export default function CartDetails() {
                 </div>
               ))}
 
-              <button
+              <Button
                 className="btn btn-outline btn-error w-full rounded-xl"
                 onClick={() => clear()}
               >
                 <Trash className="w-5 h-5" />
                 Clear Cart
-              </button>
+              </Button>
             </div>
 
             <div>
@@ -173,20 +175,20 @@ export default function CartDetails() {
                   </div>
                 </div>
 
-                <button
+                <Button
                   onClick={handleProceedToCheckout}
                   disabled={!isLoaded}
-                  className="btn btn-primary w-full rounded-full gap-2 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-primary to-chart-2 text-white hover:from-primary/80 hover:to-chart-2/80 shadow-lg hover:shadow-xl hover:scale-105 transition-all"
                 >
                   {!isLoaded ? (
-                    <span className="loading loading-spinner loading-sm"></span>
+                    <Spinner className="size-5" />
                   ) : (
-                    <>
+                    <span className="flex items-center gap-2">
                       Proceed to Checkout
-                      <ArrowRight className="w-5 h-5" />
-                    </>
+                      <ArrowRight className="size-5" />
+                    </span>
                   )}
-                </button>
+                </Button>
 
                 {!isSignedIn && isLoaded && (
                   <p className="text-sm text-warning text-center mt-3">
@@ -194,13 +196,16 @@ export default function CartDetails() {
                   </p>
                 )}
 
-                <div className="mt-6 text-center">
-                  <Link
-                    href="/"
-                    className="text-primary hover:underline text-sm"
+                <div className="mt-6 text-center w-full">
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="rounded-xl px-6 w-full"
                   >
-                    Continue Shopping
-                  </Link>
+                    <Link href="/">
+                      Continue Shopping
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </div>

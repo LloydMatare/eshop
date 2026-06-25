@@ -46,9 +46,7 @@ export const products = pgTable("products", {
 
 export const orders = pgTable("orders", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
+  userId: text("user_id").notNull(),
   items: jsonb("items")
     .$type<
       {

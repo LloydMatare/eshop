@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import useSWRMutation from "swr/mutation";
 import Image from "next/image";
 import { MapPin, CreditCard, Package, Edit2, ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Form = () => {
   const router = useRouter();
@@ -47,7 +48,7 @@ const Form = () => {
       if (res.ok) {
         clear();
         toast.success("Order placed successfully");
-        return router.push(`/order/${data.order._id}`);
+        return router.push(`/order/${data.order.id}`);
       } else {
         toast.error(data.message);
       }
@@ -202,7 +203,7 @@ const Form = () => {
                 </div>
               </div>
 
-              <button
+              <Button
                 onClick={() => placeOrder()}
                 disabled={isPlacing}
                 className="btn btn-primary w-full rounded-full btn-lg gap-4 
@@ -213,7 +214,7 @@ const Form = () => {
                 {isPlacing ? (
                   <>
                     <span className="loading loading-spinner loading-xs" aria-label="Loading"></span>
-                    <span class="ml-2">Processing...</span>
+                    <span className="ml-2">Processing...</span>
                   </>
                 ) : (
                   <>
@@ -221,7 +222,7 @@ const Form = () => {
                     Place Order
                   </>
                 )}
-              </button>
+              </Button>
 
               <p className="text-xs text-center text-base-content/60 mt-4">
                 By placing your order, you agree to our terms and conditions

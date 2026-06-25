@@ -1,34 +1,33 @@
 //@ts-ignore
 import { Paynow } from "paynow";
 
-// This is the base PayNow setup similar to the PayPal one
+function createInstance() {
+  return new Paynow(
+    process.env.NEXT_PUBLIC_PAYNOW_ID!,
+    process.env.NEXT_PUBLIC_PAYNOW_KEY!
+  );
+}
+
 export const paynow = {
   createPayNowOrder: async function createPayNowOrder(
     orderId: string,
     amount: number
   ) {
-    const paynow = new Paynow(
-      process.env.NEXT_PUBLIC_PAYNOW_API_ID,
-      process.env.NEXT_PUBLIC_PAYNOW_API_KEY
-    );
+    const instance = createInstance();
 
-    // Set PayNow URLs for redirection and results
-    paynow.resultUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/${orderId}/verify-paynow`;
-    paynow.returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/order/${orderId}`;
+    instance.resultUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/${orderId}/verify-paynow`;
+    instance.returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/order/${orderId}`;
 
-    const payment = paynow.createPayment(`Invoice_${orderId}`);
-
-    // Add the order details
+    const payment = instance.createPayment(`Invoice_${orderId}`);
     payment.add(`Order ${orderId}`, amount);
 
     try {
-      // Send payment to PayNow and get the redirect and poll URLs
-      const response = await paynow.send(payment);
+      const response = await instance.send(payment);
 
       if (response.success) {
         return {
-          link: response.redirectUrl, // URL to redirect for payment
-          pollUrl: response.pollUrl, // URL to check the payment status
+          link: response.redirectUrl,
+          pollUrl: response.pollUrl,
         };
       } else {
         throw new Error("Failed to create PayNow payment");
@@ -40,27 +39,21 @@ export const paynow = {
   },
 
   capturePayNowOrder: async function capturePayNowOrder(pollUrl: string) {
-    const paynow = new Paynow(
-      process.env.INTEGRATION_ID,
-      process.env.INTEGRATION_KEY
-    );
+    const instance = createInstance();
 
     try {
-      // Poll the payment result
       let paymentStatus;
       let retryCount = 0;
       const maxRetries = 5;
 
-      // Retry mechanism for polling
       while (retryCount < maxRetries) {
-        paymentStatus = await paynow.pollTransaction(pollUrl);
+        paymentStatus = await instance.pollTransaction(pollUrl);
         console.log("Payment status received:", paymentStatus);
 
         if (paymentStatus.status === "paid") {
           break;
         }
         retryCount++;
-        // Wait before retrying (e.g., 5 seconds)
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
 
@@ -71,7 +64,7 @@ export const paynow = {
 
       return {
         success: true,
-        id: paymentStatus.transactionId, // Extracting transaction ID
+        id: paymentStatus.transactionId,
         paidAt: paymentStatus.paidAt,
         paymentDetails: paymentStatus,
       };

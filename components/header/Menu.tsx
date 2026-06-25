@@ -1,9 +1,10 @@
 "use client";
 import useCartService from "@/lib/hooks/useCartStore";
 import useLayoutService from "@/lib/hooks/useLayout";
-import { useUser, useClerk } from "@clerk/nextjs";
+import { useUser, useAuth, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ShoppingCart, User, LogOut, LayoutDashboard, Package, History, Sun, Moon } from "lucide-react";
 import {
   Dialog,
@@ -32,7 +33,23 @@ const Menu = () => {
   };
 
   const { user } = useUser();
+  const { sessionClaims } = useAuth();
+  const isAdmin = sessionClaims?.metadata?.isAdmin == true || user?.publicMetadata?.isAdmin == true;
   const { theme, toggleTheme } = useLayoutService();
+  const userButtonRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
+
+
+  console.log("User role :", user?.publicMetadata?.isAdmin)
+
+  useEffect(() => {
+    if (showUserMenu && userButtonRef.current) {
+      const rect = userButtonRef.current.getBoundingClientRect();
+      setMenuPosition({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    } else if (!showUserMenu) {
+      setMenuPosition(null);
+    }
+  }, [showUserMenu]);
 
   const cartCount = mounted ? items.reduce((a, c) => a + c.qty, 0) : 0;
 
@@ -68,7 +85,7 @@ const Menu = () => {
 
       {/* User */}
       {user ? (
-        <div className="relative">
+        <div className="relative" ref={userButtonRef}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all"
@@ -78,65 +95,71 @@ const Menu = () => {
             </div>
           </button>
 
-          {showUserMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-              <div className="absolute right-0 top-full mt-2 z-50 w-56 bg-popover border border-border rounded-xl shadow-2xl shadow-black/5 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="p-3 border-b border-border">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {user.fullName || "User"}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
-                    {user.primaryEmailAddress?.emailAddress || ""}
-                  </p>
-                </div>
-                <div className="p-1.5">
-                  {user.publicMetadata?.isAdmin === true && (
+          {showUserMenu &&
+            menuPosition &&
+            createPortal(
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+                <div
+                  className="fixed z-[100] w-56 bg-popover border border-border rounded-xl shadow-2xl shadow-black/5 overflow-hidden animate-in fade-in duration-200"
+                  style={{ top: menuPosition.top, right: menuPosition.right }}
+                >
+                  <div className="p-3 border-b border-border">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {user.fullName || "User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {user.primaryEmailAddress?.emailAddress || ""}
+                    </p>
+                  </div>
+                  <div className="p-1.5">
+                    {isAdmin && (
+                      <Link
+                        href="/admin/dashboard"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Dashboard
+                      </Link>
+                    )}
                     <Link
-                      href="/admin/dashboard"
+                      href="/order-history"
                       onClick={() => setShowUserMenu(false)}
                       className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
                     >
-                      <LayoutDashboard className="w-4 h-4" />
-                      Dashboard
+                      <History className="w-4 h-4" />
+                      Order History
                     </Link>
-                  )}
-                  <Link
-                    href="/order-history"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-                  >
-                    <History className="w-4 h-4" />
-                    Order History
-                  </Link>
-                  <Link
-                    href="/order-tracking"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-                  >
-                    <Package className="w-4 h-4" />
-                    Track Orders
-                  </Link>
-                  <Link
-                    href="/profile"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-                  >
-                    <User className="w-4 h-4" />
-                    Profile
-                  </Link>
-                  <hr className="my-1.5 border-border" />
-                  <button
-                    onClick={() => { setShowUserMenu(false); setShowDialog(true); }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Sign Out
-                  </button>
+                    <Link
+                      href="/order-tracking"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                    >
+                      <Package className="w-4 h-4" />
+                      Track Orders
+                    </Link>
+                    <Link
+                      href="/profile"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      Profile
+                    </Link>
+                    <hr className="my-1.5 border-border" />
+                    <button
+                      onClick={() => { setShowUserMenu(false); setShowDialog(true); }}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              </>,
+              document.body
+            )}
         </div>
       ) : (
         <Link

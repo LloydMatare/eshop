@@ -3,6 +3,7 @@ import Link from "next/link";
 import React from "react";
 import { Rating } from "./Rating";
 import { Product } from "@/lib/types";
+import { Button } from "../ui/button";
 
 export default function ProductItem({ product }: { product: Product }) {
   return (
@@ -31,12 +32,11 @@ export default function ProductItem({ product }: { product: Product }) {
           <span className="text-2xl font-bold text-primary">
             ${product.price}
           </span>
-          <Link 
-            href={`/product/${product.slug}`}
-            className="btn btn-primary btn-sm rounded-full px-6 group-hover:shadow-lg transition-all"
-          >
-            View
-          </Link>
+          <Button asChild className="rounded-full px-6 bg-gradient-to-r from-primary to-chart-2 text-white border-none hover:shadow-lg hover:scale-105 transition-all">
+            <Link href={`/product/${product.slug}`}>
+              View
+            </Link>
+          </Button>
         </div>
       </div>
     </div>

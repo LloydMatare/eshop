@@ -4,6 +4,7 @@ import useCartService from '@/lib/hooks/useCartStore'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { CreditCard, Smartphone, Wallet, Banknote, Building2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const Form = () => {
   const router = useRouter()
@@ -142,20 +143,21 @@ const Form = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4">
-                <button
+                <Button
                   type="button"
-                  className="btn btn-ghost flex-1 rounded-full"
+                  variant="outline"
+                  className="flex-1 rounded-full"
                   onClick={() => router.back()}
                 >
                   Back to Shipping
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary flex-1 rounded-full"
+                </Button>
+                <Button 
+                  type="submit"
+                  className="flex-1 rounded-full bg-gradient-to-r from-primary to-chart-2 text-white hover:from-primary/80 hover:to-chart-2/80"
                   disabled={!selectedPaymentMethod}
                 >
                   Continue to Review Order
-                </button>
+                </Button>
               </div>
             </form>
           </div>

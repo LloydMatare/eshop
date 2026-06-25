@@ -1,13 +1,12 @@
-import { auth } from "@clerk/nextjs/server";
+import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const { sessionClaims } = await auth();
-  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
-
-  if (!isAdmin) {
+  try {
+    await requireAdmin();
+  } catch {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 

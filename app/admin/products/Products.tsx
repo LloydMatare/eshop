@@ -1,8 +1,6 @@
-//@ts-nocheck
 "use client";
 import * as XLSX from "xlsx";
 import { formatId } from "@/lib/utils";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -12,11 +10,8 @@ import {
   Plus,
   Upload,
   Trash2,
-  Pen,
   Search,
   X,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import DataError from "@/components/admin/DataError";
 import { fetcher } from "@/lib/services/fetcher";
@@ -29,7 +24,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Product } from "@/lib/types";
+import { Spinner } from "@/components/ui/spinner";
+import { DataTable } from "@/components/ui/data-table";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { createProductColumns, type ProductRow } from "./columns";
 
 interface UploadedProduct {
   part: string;
@@ -52,9 +57,6 @@ export default function Products() {
   } = useSWR(`/api/admin/products`, fetcher);
   const [uploadedData, setUploadedData] = useState<any[]>([]);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
@@ -110,7 +112,7 @@ export default function Products() {
   const filteredProducts = useMemo(() => {
     if (!products) return [];
 
-    return products.filter((product: Product) => {
+    return products.filter((product: ProductRow) => {
       const matchesSearch =
         product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.part?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -128,20 +130,12 @@ export default function Products() {
     });
   }, [products, searchQuery, categoryFilter, stockFilter]);
 
-  const totalPages = Math.ceil(filteredProducts.length / pageSize);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
   const categories = useMemo(() => {
     if (!products) return [];
-    return Array.from(new Set(products.map((p: Product) => p.category)));
+    return Array.from(new Set(products.map((p: ProductRow) => p.category)));
   }, [products]);
 
-  const handleFilterChange = () => {
-    setCurrentPage(1);
-  };
+  const handleFilterChange = () => {};
 
   const handleDeleteConfirm = () => {
     if (deleteProductId) {
@@ -191,6 +185,8 @@ export default function Products() {
   if (isLoading) return <AdminLoading />;
   if (!products || products.length === 0) return <DataError name="products" />;
 
+  const columns = createProductColumns((id) => setDeleteProductId(id));
+
   return (
     <div className="container mx-auto px-4 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -203,17 +199,13 @@ export default function Products() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button
+          <Button
             disabled={isCreating}
             onClick={() => createProduct()}
-            className="btn btn-primary gap-2 rounded-full"
           >
-            {isCreating && (
-              <span className="loading loading-spinner loading-sm"></span>
-            )}
-            <Plus size={18} />
+            {isCreating ? <Spinner /> : <Plus />}
             Create Product
-          </button>
+          </Button>
           <input
             type="file"
             accept=".xlsx, .xls"
@@ -221,215 +213,81 @@ export default function Products() {
             style={{ display: "none" }}
             onChange={(e) => handleFileUpload(e.target.files)}
           />
-          <label
-            htmlFor="file-upload"
-            className="btn btn-secondary gap-2 rounded-full cursor-pointer"
-          >
-            <Upload size={18} />
-            Upload Excel
-          </label>
+          <Button asChild variant="secondary">
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <Upload />
+              Upload Excel
+            </label>
+          </Button>
         </div>
       </div>
 
-      <div className="bg-base-200 rounded-2xl p-6 mb-6 border border-base-300">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/50" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                handleFilterChange();
-              }}
-              className="input input-bordered w-full pl-10 pr-10"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => {
-                  setSearchQuery("");
+      <DataTable
+        columns={columns}
+        data={filteredProducts}
+        toolbar={
+          <div className="flex items-center gap-4 flex-1">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
                   handleFilterChange();
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-
-          <select
-            value={categoryFilter}
-            onChange={(e) => {
-              setCategoryFilter(e.target.value);
-              handleFilterChange();
-            }}
-            className="select select-bordered w-full"
-          >
-            <option value="all">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={stockFilter}
-            onChange={(e) => {
-              setStockFilter(e.target.value);
-              handleFilterChange();
-            }}
-            className="select select-bordered w-full"
-          >
-            <option value="all">All Stock Status</option>
-            <option value="in-stock">In Stock</option>
-            <option value="out-of-stock">Out of Stock</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="bg-base-200 rounded-2xl overflow-hidden border border-base-300">
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead className="bg-base-300">
-              <tr className="text-base">
-                <th className="font-semibold">ID</th>
-                <th className="font-semibold">Part</th>
-                <th className="font-semibold">Name</th>
-                <th className="font-semibold">Price</th>
-                <th className="font-semibold">Category</th>
-                <th className="font-semibold">Stock</th>
-                <th className="font-semibold">Rating</th>
-                <th className="font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-8">
-                    <div className="text-base-content/60">
-                      <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No products found</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                paginatedProducts.map((product: Product) => (
-                  <tr
-                    key={product._id}
-                    className="hover:bg-base-300/50 transition-colors"
-                  >
-                    <td className="font-mono text-sm">
-                      {formatId(product._id!)}
-                    </td>
-                    <td className="font-medium">{product.part}</td>
-                    <td className="max-w-xs truncate">{product.name}</td>
-                    <td className="font-semibold text-primary">
-                      ${product.price}
-                    </td>
-                    <td>
-                      <span className="badge badge-primary badge-outline">
-                        {product.category}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          product.countInStock > 0
-                            ? "badge-success"
-                            : "badge-error"
-                        }`}
-                      >
-                        {product.countInStock}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-1">
-                        <span className="text-warning">⭐</span>
-                        <span className="font-medium">{product.rating}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/admin/products/${product._id}`}
-                          className="btn btn-sm btn-ghost gap-1 hover:bg-primary hover:text-primary-content transition-all"
-                        >
-                          <Pen size={14} />
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => setDeleteProductId(product._id!)}
-                          className="btn btn-sm btn-ghost gap-1 text-error hover:bg-error hover:text-error-content transition-all"
-                        >
-                          <Trash2 size={14} />
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    handleFilterChange();
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               )}
-            </tbody>
-          </table>
-        </div>
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-base-300">
-            <div className="text-sm text-base-content/60">
-              Showing {(currentPage - 1) * pageSize + 1} to{" "}
-              {Math.min(currentPage * pageSize, filteredProducts.length)} of{" "}
-              {filteredProducts.length} products
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="btn btn-sm btn-ghost gap-1"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </button>
-              <div className="flex gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`btn btn-sm ${
-                        currentPage === pageNum ? "btn-primary" : "btn-ghost"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="btn btn-sm btn-ghost gap-1"
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            <Select
+              value={categoryFilter}
+              onValueChange={(value) => {
+                setCategoryFilter(value);
+                handleFilterChange();
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={stockFilter}
+              onValueChange={(value) => {
+                setStockFilter(value);
+                handleFilterChange();
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Stock Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stock Status</SelectItem>
+                <SelectItem value="in-stock">In Stock</SelectItem>
+                <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        )}
-      </div>
+        }
+      />
 
       <Dialog
         open={!!deleteProductId}

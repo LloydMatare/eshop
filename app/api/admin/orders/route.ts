@@ -1,14 +1,13 @@
-import { auth } from "@clerk/nextjs/server";
+import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { orders, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  const { sessionClaims } = await auth();
-  const isAdmin = sessionClaims?.metadata?.isAdmin === true;
-
-  if (!isAdmin) {
+export async function GET(req: Request) {
+  try {
+    await requireAdmin(req);
+  } catch {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 

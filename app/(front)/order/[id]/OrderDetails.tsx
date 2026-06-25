@@ -10,6 +10,9 @@ import { useState } from "react";
 import { fetcher } from "@/lib/services/fetcher";
 import { formatDateTime } from "@/lib/utils";
 import { MapPin, CreditCard, Package, CheckCircle, XCircle, Clock, Truck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function OrderDetails({
   orderId,
@@ -159,26 +162,26 @@ export default function OrderDetails({
             </div>
             <div className="flex items-center gap-3">
               {isPaid ? (
-                <div className="badge badge-success badge-lg gap-2 py-4">
+                <Badge variant="secondary" className="gap-2 py-3 px-4 text-sm">
                   <CheckCircle className="w-4 h-4" />
                   Paid
-                </div>
+                </Badge>
               ) : (
-                <div className="badge badge-warning badge-lg gap-2 py-4">
+                <Badge variant="outline" className="gap-2 py-3 px-4 text-sm">
                   <Clock className="w-4 h-4" />
                   Pending Payment
-                </div>
+                </Badge>
               )}
               {isDelivered ? (
-                <div className="badge badge-success badge-lg gap-2 py-4">
+                <Badge variant="secondary" className="gap-2 py-3 px-4 text-sm">
                   <Truck className="w-4 h-4" />
                   Delivered
-                </div>
+                </Badge>
               ) : (
-                <div className="badge badge-warning badge-lg gap-2 py-4">
+                <Badge variant="outline" className="gap-2 py-3 px-4 text-sm">
                   <Package className="w-4 h-4" />
                   Processing
-                </div>
+                </Badge>
               )}
             </div>
           </div>
@@ -323,14 +326,15 @@ export default function OrderDetails({
               )}
               
               {!isPaid && paymentMethod === "PayNow" && (
-                <button
+                <Button
                   onClick={createPayNowOrder}
-                  className="btn btn-primary w-full rounded-full btn-lg mb-4"
+                  className="w-full mb-4"
+                  size="lg"
                   disabled={loading}
                 >
                   {loading ? (
                     <>
-                      <span className="loading loading-spinner loading-sm"></span>
+                      <Spinner />
                       Processing...
                     </>
                   ) : (
@@ -339,22 +343,23 @@ export default function OrderDetails({
                       Pay with PayNow
                     </>
                   )}
-                </button>
+                </Button>
               )}
 
-              {user?.publicMetadata?.isAdmin === true && !isDelivered && (
-                <button
-                  className="btn btn-success w-full rounded-full gap-2"
+              {user?.publicMetadata?.isAdmin == true && !isDelivered && (
+                <Button
+                  variant="secondary"
+                  className="w-full gap-2"
                   onClick={() => deliverOrder()}
                   disabled={isDelivering}
                 >
                   {isDelivering ? (
-                    <span className="loading loading-spinner loading-sm"></span>
+                    <Spinner />
                   ) : (
                     <Truck className="w-5 h-5" />
                   )}
                   Mark as Delivered
-                </button>
+                </Button>
               )}
 
               {isPaid && (

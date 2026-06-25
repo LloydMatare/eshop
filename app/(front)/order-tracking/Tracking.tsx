@@ -147,7 +147,7 @@ export default function Tracking() {
                     </div>
                   </div>
                   <Link
-                    href={`/order/${order._id}`}
+                    href={`/order/${order.id}`}
                     className="btn btn-primary btn-sm gap-2 rounded-full"
                   >
                     <Eye className="w-4 h-4" />

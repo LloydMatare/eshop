@@ -1,8 +1,8 @@
 "use client";
 
 import PaynowReactWrapper from "paynow-react";
-import DrawerButton from "@/components/DrawerButton";
-import Sidebar from "@/components/Sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import SidebarContent from "@/components/Sidebar";
 import Header from "@/components/header/Header";
 import Footer from "@/components/Footer";
 
@@ -21,24 +21,16 @@ export default function FrontLayout({
   return (
     <main className="flex-grow">
       <PaynowReactWrapper {...paynow_config}>
-        <div className="drawer">
-          <DrawerButton />
-          <div className="drawer-content">
-            <div className="min-h-screen flex flex-col">
+        <SidebarProvider defaultOpen={false}>
+          <div className="flex min-h-svh w-full">
+            <SidebarContent />
+            <div className="flex flex-1 flex-col">
               <Header />
               {children}
               <Footer />
             </div>
           </div>
-          <div className="drawer-side">
-            <label
-              htmlFor="my-drawer"
-              aria-label="close sidebar"
-              className="drawer-overlay"
-            ></label>
-            <Sidebar />
-          </div>
-        </div>
+        </SidebarProvider>
       </PaynowReactWrapper>
     </main>
   );

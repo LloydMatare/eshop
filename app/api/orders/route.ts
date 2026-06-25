@@ -25,24 +25,24 @@ export async function POST(req: Request) {
   try {
     const payload = await req.json();
 
-    const productIds = payload.items.map((x: { _id: string }) => x._id);
+    const productIds = payload.items.map((x: { product: string }) => x.product);
     const dbProductPrices = await db
       .select({ id: products.id, price: products.price })
       .from(products)
       .where(inArray(products.id, productIds));
 
     const dbOrderItems: OrderItem[] = payload.items.map(
-      (item: { _id: string }) => {
+      (item: { product: string }) => {
         const product = dbProductPrices.find(
-          (prod) => prod.id === item._id
+          (prod) => prod.id === item.product
         );
-        if (product) {
-          return {
-            ...item,
-            product: item._id,
-            price: Number(product.price),
-          };
+        if (!product) {
+          throw new Error(`Product ${item.product} not found in database`);
         }
+        return {
+          ...item,
+          price: Number(product.price),
+        };
       }
     );
 

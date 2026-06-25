@@ -136,7 +136,11 @@ export default async function ProductDetails({
               <div className="space-y-4">
                 <AddToCart
                   item={{
-                    ...product,
+                    product: product.id,
+                    name: product.name,
+                    slug: product.slug,
+                    image: product.image ?? "",
+                    price: product.price,
                     qty: 0,
                     color: "",
                     size: "",

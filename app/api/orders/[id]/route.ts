@@ -13,6 +13,9 @@ export async function GET(
     .where(eq(orders.id, (await params).id))
     .limit(1)
     .then((r) => r[0]);
+  if (!order) {
+    return NextResponse.json({ message: "Order not found" }, { status: 404 });
+  }
   return NextResponse.json(order);
 }
 

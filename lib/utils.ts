@@ -12,7 +12,8 @@ export const formatNumber = (x: number) => {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 };
 
-export const formatId = (x: string) => {
+export const formatId = (x: string | undefined) => {
+  if (!x) return "....";
   return `..${x.substring(x.length - 4)}`;
 };
 

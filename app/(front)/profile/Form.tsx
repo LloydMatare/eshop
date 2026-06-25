@@ -114,7 +114,7 @@ const Form = () => {
                   {user?.primaryEmailAddress?.emailAddress}
                 </p>
 
-                {user?.publicMetadata?.isAdmin === true && (
+                {user?.publicMetadata?.isAdmin == true && (
                   <div className="badge badge-primary gap-2">
                     <Shield className="w-3 h-3" />
                     Administrator
