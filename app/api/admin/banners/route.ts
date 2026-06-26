@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     name: "sample name",
     slug: "sample-name-" + Math.random(),
     image: "/images/shirt1.jpg",
+    category: null,
   };
 
   try {

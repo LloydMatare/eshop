@@ -1,4 +1,4 @@
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/ThemeProvider";
 
 export default function useLayoutService() {
   const { theme, setTheme } = useTheme();

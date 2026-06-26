@@ -111,7 +111,7 @@ const Menu = () => {
                     </p>
                   </div>
                   <div className="p-1.5">
-                    {isAdmin && (
+                    {!isAdmin && (
                       <Link
                         href="/admin/dashboard"
                         onClick={() => setShowUserMenu(false)}

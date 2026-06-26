@@ -1,18 +1,13 @@
 "use client";
 
 import { ReactNode } from "react";
-import { ThemeProvider } from "next-themes";
+import ThemeProvider from "./ThemeProvider";
 import { Toaster } from "sonner";
 import { SWRConfig } from "swr";
 
 export default function Providers({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
+    <ThemeProvider>
       <SWRConfig
         value={{
           fetcher: async (resource: string) => {

@@ -77,7 +77,7 @@ export default function HeroCarousel({
         {banners.map((banner) => (
           <CarouselItem key={banner.id} className="pl-0">
             <Link
-              href={`/product/${banner.slug}`}
+              href={`/banner/${banner.id}`}
               className="group relative block h-[500px] w-full overflow-hidden lg:h-[600px]"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -102,9 +102,9 @@ const seedProducts = [
 ];
 
 const seedBanners = [
-  { id: "banner_001", name: "Enterprise IT Solutions", slug: "enterprise-it-solutions", image: "/images/banner-1.jpg" },
-  { id: "banner_002", name: "Cloud Infrastructure Deals", slug: "cloud-infrastructure-deals", image: "/images/banner-networks.jpg" },
-  { id: "banner_003", name: "Business Laptop Specials", slug: "business-laptop-specials", image: "/images/banner-3.webp" },
+  { id: "banner_001", name: "Enterprise IT Solutions", slug: "enterprise-it-solutions", image: "/images/banner-1.jpg", category: "Laptops & Computers" },
+  { id: "banner_002", name: "Cloud Infrastructure Deals", slug: "cloud-infrastructure-deals", image: "/images/banner-networks.jpg", category: "Servers & Storage" },
+  { id: "banner_003", name: "Business Laptop Specials", slug: "business-laptop-specials", image: "/images/banner-3.webp", category: "Networking" },
 ];
 
 async function seed() {

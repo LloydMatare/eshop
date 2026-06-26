@@ -40,12 +40,12 @@ export async function PUT(
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const { name, slug, image } = await req.json();
+  const { name, slug, image, category } = await req.json();
 
   try {
     const updatedBanner = await db
       .update(banners)
-      .set({ name, slug, image })
+      .set({ name, slug, image, category })
       .where(eq(banners.id, (await params).id))
       .returning()
       .then((r) => r[0]);

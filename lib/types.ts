@@ -3,6 +3,7 @@ export type Banner = {
   name: string;
   slug: string;
   image: string;
+  category?: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };

@@ -106,6 +106,7 @@ export const banners = pgTable("banners", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   image: text("image").notNull(),
+  category: text("category"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

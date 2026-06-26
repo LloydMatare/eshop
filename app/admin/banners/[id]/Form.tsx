@@ -47,6 +47,7 @@ export default function BannerEditForm({ bannerId }: { bannerId: string }) {
     setValue("name", product.name);
     setValue("slug", product.slug);
     setValue("image", product.image);
+    setValue("category", product.category);
   }, [product, setValue]);
 
   const formSubmit = async (formData: any) => {
@@ -114,6 +115,7 @@ export default function BannerEditForm({ bannerId }: { bannerId: string }) {
         <form onSubmit={handleSubmit(formSubmit)}>
           <FormInput name="Name" id="name" required />
           <FormInput name="Slug" id="slug" required />
+          <FormInput name="Category" id="category" />
           <FormInput name="Image" id="image" required />
           <div className="md:flex mb-6">
             <label className="label md:w-1/5" htmlFor="imageFile">
