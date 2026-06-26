@@ -53,11 +53,21 @@ export default function ResultContent() {
   const orderId = searchParams.get("orderId");
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(true);
 
   useEffect(() => {
     if (!orderId) return;
 
-    const fetchOrder = async () => {
+    const verifyAndFetch = async () => {
+      try {
+        await fetch(`/api/orders/${orderId}/verify-paynow`, {
+          method: "POST",
+        });
+      } catch {
+        // webhook may have already completed — proceed to fetch
+      }
+      setVerifying(false);
+
       try {
         const response = await fetch(`/api/orders/${orderId}`);
         if (!response.ok) throw new Error("Failed to fetch order");
@@ -70,13 +80,16 @@ export default function ResultContent() {
       }
     };
 
-    fetchOrder();
+    verifyAndFetch();
   }, [orderId]);
 
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <span className="loading loading-spinner loading-lg text-primary" />
+        <p className="text-base-content/60 mt-4">
+          {verifying ? "Verifying payment..." : "Loading order..."}
+        </p>
       </div>
     );
   }
