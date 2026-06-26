@@ -3,6 +3,7 @@ import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
@@ -21,8 +22,8 @@ export default function OrderDetails({
   orderId: string;
   paypalClientId: string;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [paymentUrl, setPaymentUrl] = useState(null);
   const { data, error } = useSWR(`/api/orders/${orderId}`, fetcher);
   const { user } = useUser();
   const { trigger: deliverOrder, isMutating: isDelivering } = useSWRMutation(
@@ -53,7 +54,7 @@ export default function OrderDetails({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            returnUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/order/${orderId}`,
+            returnUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/result?orderId=${orderId}`,
             resultUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/${orderId}/verify-paynow`,
           }),
         }
@@ -63,9 +64,7 @@ export default function OrderDetails({
       console.log("API Response:", order);
 
       if (order.link) {
-        setPaymentUrl(order.link);
         console.log("Redirecting to PayNow:", order.link);
-        checkOrderStatus();
         window.location.href = order.link;
       } else {
         console.error(
@@ -81,27 +80,6 @@ export default function OrderDetails({
     }
   };
 
-  const checkOrderStatus = async () => {
-    try {
-      console.log("Checking order payment status...");
-      const response = await fetch(`/api/orders/${orderId}/verify-paynow`, {
-        method: "POST",
-      });
-
-      const result = await response.json();
-      console.log("Verify API Response:", result);
-
-      if (result.isPaid) {
-        toast.success("Payment successful!");
-      } else {
-        toast.error("Payment not completed yet.");
-      }
-    } catch (error) {
-      console.error("Error verifying payment:", error);
-      toast.error("Failed to verify payment.");
-    }
-  };
-
   console.log("data", data);
 
   const createPayPalOrder = async () => {
@@ -113,7 +91,7 @@ export default function OrderDetails({
       .then((order) => order.id);
   };
 
-  const onApprovePayPalOrder = async (data: any) => {
+  const onApprovePayPalOrder = async (data: Record<string, unknown>) => {
     return fetch(`/api/orders/${orderId}/capture-paypal-order`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -121,7 +99,7 @@ export default function OrderDetails({
     })
       .then((response) => response.json())
       .then(() => {
-        toast.success("Order paid successfully");
+        router.push(`/result?orderId=${orderId}`);
       });
   };
 
@@ -254,7 +232,7 @@ export default function OrderDetails({
               </div>
               
               <div className="space-y-4">
-                {items.map((item: any) => (
+                {items.map((item: { slug: string; image: string; name: string; color?: string; size?: string; qty: number; price: number }) => (
                   <div key={item.slug} className="flex gap-4 p-4 bg-base-100 rounded-xl border border-base-300">
                     <Link href={`/product/${item.slug}`} className="flex-shrink-0">
                       <div className="w-20 h-20 bg-base-200 rounded-lg overflow-hidden">

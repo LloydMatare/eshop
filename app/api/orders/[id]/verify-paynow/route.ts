@@ -1,56 +1,19 @@
-import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { paynow } from "@/lib/paynow";
 import { NextResponse } from "next/server";
 
-const MAX_RETRIES = 5;
-const RETRY_DELAY = 5000;
-const PAYNOW_TIMEOUT = 10000;
+const COMPLETED_STATUSES = ["paid", "awaiting delivery"];
 
-async function checkPaymentStatusWithRetry(
-  pollUrl: string,
-  retries: number = MAX_RETRIES
-) {
-  let attempt = 0;
-  let paymentStatus;
-
-  while (attempt < retries) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), PAYNOW_TIMEOUT);
-
-      paymentStatus = await paynow.capturePayNowOrder(pollUrl);
-
-      clearTimeout(timeout);
-
-      if (
-        paymentStatus.success &&
-        paymentStatus.paymentDetails?.status === "paid"
-      ) {
-        return paymentStatus;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
-    } catch (error) {
-      console.error("Error checking payment status:", error);
-    }
-    attempt++;
-  }
-
-  return paymentStatus;
+function isCompleted(status: string): boolean {
+  return COMPLETED_STATUSES.includes(status.toLowerCase());
 }
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
   const order = await db
     .select()
     .from(orders)
@@ -70,44 +33,39 @@ export async function POST(
   }
 
   try {
-    const paymentStatus = await checkPaymentStatusWithRetry(
+    const paymentStatus = await paynow.capturePayNowOrder(
       order.paymentPollUrl
     );
 
-    const paymentDetails = paymentStatus?.paymentDetails;
-    if (!paymentDetails || !paymentDetails.status) {
+    if (!paymentStatus.success) {
       return NextResponse.json(
-        { message: "Payment status unavailable" },
-        { status: 500 }
+        { message: "Payment not completed" },
+        { status: 400 }
       );
     }
 
-    switch (paymentDetails.status) {
-      case "paid":
-        await db
-          .update(orders)
-          .set({
-            isPaid: true,
-            paidAt: new Date(),
-            paymentResult: paymentDetails,
-          })
-          .where(eq(orders.id, (await params).id));
-        return NextResponse.json({ message: "Payment verified", isPaid: true });
+    const paymentDetails = paymentStatus.paymentDetails;
+    const status = paymentDetails?.status;
 
-      case "created":
-      case "pending":
-        return NextResponse.json({
-          message: "Payment pending, try again later",
-          isPaid: false,
-        });
-
-      default:
-        return NextResponse.json({
-          message: `Unexpected status: ${paymentDetails.status}`,
-          isPaid: false,
-        });
+    if (!status || !isCompleted(status)) {
+      return NextResponse.json(
+        { message: `Unexpected status: ${status}` },
+        { status: 400 }
+      );
     }
+
+    await db
+      .update(orders)
+      .set({
+        isPaid: true,
+        paidAt: new Date(),
+        paymentResult: paymentDetails,
+      })
+      .where(eq(orders.id, (await params).id));
+
+    return NextResponse.json({ message: "Payment verified", isPaid: true });
   } catch (err) {
+    console.error("verify-paynow error:", err);
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }

@@ -1,11 +1,17 @@
 //@ts-ignore
 import { Paynow } from "paynow";
 
+const PAYNOW_COMPLETED_STATUSES = ["paid", "awaiting delivery"];
+
 function createInstance() {
   return new Paynow(
     process.env.NEXT_PUBLIC_PAYNOW_ID!,
     process.env.NEXT_PUBLIC_PAYNOW_KEY!
   );
+}
+
+function isPaymentCompleted(status: string): boolean {
+  return PAYNOW_COMPLETED_STATUSES.includes(status.toLowerCase());
 }
 
 export const paynow = {
@@ -21,7 +27,7 @@ export const paynow = {
       throw new Error(`NEXT_PUBLIC_BASE_URL is not set. Set it in your Vercel project environment variables (e.g. https://eshop-eta-ten.vercel.app)`);
     }
     instance.resultUrl = `${resolvedUrl}/api/orders/${orderId}/verify-paynow`;
-    instance.returnUrl = `${resolvedUrl}/order/${orderId}`;
+    instance.returnUrl = `${resolvedUrl}/result?orderId=${orderId}`;
 
     const payment = instance.createPayment(`Invoice_${orderId}`);
     payment.add(`Order ${orderId}`, amount);
@@ -65,14 +71,14 @@ export const paynow = {
           continue;
         }
 
-        if (paymentStatus.status === "paid") {
+        if (isPaymentCompleted(paymentStatus.status)) {
           break;
         }
         retryCount++;
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
 
-      if (!paymentStatus || paymentStatus.status !== "paid") {
+      if (!paymentStatus || !isPaymentCompleted(paymentStatus.status)) {
         console.error("Payment not completed after retries");
         return { success: false, message: "Payment not completed" };
       }

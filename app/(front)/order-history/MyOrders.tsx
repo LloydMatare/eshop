@@ -1,13 +1,31 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
 import useSWR from "swr";
 import { fetcher } from "@/lib/services/fetcher";
 import { formatId } from "@/lib/utils";
 import AdminLoading from "@/components/admin/AdminLoading";
-import { Package, Search, X, CheckCircle, Clock, XCircle, Calendar, DollarSign, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Package,
+  Search,
+  X,
+  CheckCircle,
+  Clock,
+  XCircle,
+  DollarSign,
+  Eye,
+  SlidersHorizontal,
+} from "lucide-react";
 
 type OrderData = {
   id: string;
@@ -17,97 +35,106 @@ type OrderData = {
   paidAt: string;
   deliveredAt: string;
   createdAt: string;
-  items: any[];
 };
 
 export default function MyOrders() {
-  const router = useRouter();
-  const { user } = useUser();
-  const [mounted, setMounted] = useState(false);
+  const { user, isLoaded } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const isAdmin = user?.publicMetadata?.isAdmin === true;
 
   const { data: orders, error } = useSWR(
-    //@ts-ignore
-    user?.publicMetadata?.isAdmin ? "/api/orders/admin" : "/api/orders/mine",
+    isLoaded && user
+      ? isAdmin
+        ? "/api/orders/admin"
+        : "/api/orders/mine"
+      : null,
     fetcher
   );
 
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
-    
+
     return orders.filter((order: OrderData) => {
-      const matchesSearch = 
+      const matchesSearch =
         order.id.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesStatus = 
+
+      const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "delivered" && order.isDelivered) ||
         (statusFilter === "pending" && !order.isDelivered) ||
         (statusFilter === "paid" && order.isPaid) ||
         (statusFilter === "unpaid" && !order.isPaid);
-      
+
       return matchesSearch && matchesStatus;
     });
   }, [orders, searchQuery, statusFilter]);
 
-  if (!mounted) return <></>;
-  if (error) return "An error has occurred.";
+  if (!isLoaded) return <></>;
+  if (error) return <div className="container mx-auto px-4 py-16 text-center text-error">Failed to load orders: {error.message}</div>;
   if (!orders) return <AdminLoading />;
 
   return (
     <div className="container mx-auto px-4 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-base-content mb-2">Order History</h1>
+        <h1 className="text-4xl font-bold text-base-content mb-2">
+          Order History
+        </h1>
         <p className="text-base-content/60">
           Track and manage all your orders
         </p>
       </div>
 
-      <div className="bg-base-200 rounded-2xl p-6 mb-6 border border-base-300">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/50" />
-            <input
+      <div className="bg-card rounded-2xl p-5 mb-6 border shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
               type="text"
               placeholder="Search by order ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input input-bordered w-full pl-10 pr-10"
+              className="pl-9 pr-9"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/50 hover:text-base-content"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="size-4" />
               </button>
             )}
           </div>
 
-          <select
+          <Select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="select select-bordered w-full"
+            onValueChange={setStatusFilter}
           >
-            <option value="all">All Orders</option>
-            <option value="delivered">Delivered</option>
-            <option value="pending">Pending Delivery</option>
-            <option value="paid">Paid</option>
-            <option value="unpaid">Unpaid</option>
-          </select>
+            <SelectTrigger className="w-full sm:w-44">
+              <SlidersHorizontal className="size-4" />
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Orders</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="unpaid">Unpaid</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+              <SelectItem value="pending">Pending Delivery</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       {filteredOrders.length === 0 ? (
         <div className="bg-base-200 rounded-2xl p-16 text-center border border-base-300">
           <Package className="w-24 h-24 mx-auto mb-6 text-base-content/30" />
-          <h3 className="text-2xl font-bold text-base-content mb-4">No orders found</h3>
-          <p className="text-base-content/60 mb-6">Start shopping to create your first order</p>
+          <h3 className="text-2xl font-bold text-base-content mb-4">
+            No orders found
+          </h3>
+          <p className="text-base-content/60 mb-6">
+            Start shopping to create your first order
+          </p>
           <Link href="/" className="btn btn-primary rounded-full">
             Browse Products
           </Link>
@@ -130,11 +157,14 @@ export default function MyOrders() {
                         Order #{formatId(order.id)}
                       </p>
                       <p className="text-sm text-base-content/60">
-                        {new Date(order.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
+                        {new Date(order.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )}
                       </p>
                     </div>
                   </div>
@@ -143,7 +173,10 @@ export default function MyOrders() {
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-base-content/50" />
                       <span className="text-sm text-base-content/70">
-                        Total: <span className="font-semibold text-primary">${order.totalPrice.toFixed(2)}</span>
+                        Total:{" "}
+                        <span className="font-semibold text-primary">
+                          ${Number(order.totalPrice).toFixed(2)}
+                        </span>
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -151,7 +184,8 @@ export default function MyOrders() {
                         <>
                           <CheckCircle className="w-4 h-4 text-success" />
                           <span className="text-sm text-success">
-                            Paid on {new Date(order.paidAt).toLocaleDateString()}
+                            Paid on{" "}
+                            {new Date(order.paidAt).toLocaleDateString()}
                           </span>
                         </>
                       ) : (
@@ -166,13 +200,18 @@ export default function MyOrders() {
                         <>
                           <CheckCircle className="w-4 h-4 text-success" />
                           <span className="text-sm text-success">
-                            Delivered on {new Date(order.deliveredAt).toLocaleDateString()}
+                            Delivered on{" "}
+                            {new Date(
+                              order.deliveredAt
+                            ).toLocaleDateString()}
                           </span>
                         </>
                       ) : (
                         <>
                           <Clock className="w-4 h-4 text-warning" />
-                          <span className="text-sm text-warning">In transit</span>
+                          <span className="text-sm text-warning">
+                            In transit
+                          </span>
                         </>
                       )}
                     </div>
@@ -180,13 +219,12 @@ export default function MyOrders() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <Link
-                    href={`/order/${order.id}`}
-                    className="btn btn-primary btn-sm gap-2 rounded-full"
-                  >
-                    <Eye className="w-4 h-4" />
-                    View Details
-                  </Link>
+                  <Button asChild size="sm" className="rounded-full gap-2">
+                    <Link href={`/order/${order.id}`}>
+                      <Eye className="size-4" />
+                      View Details
+                    </Link>
+                  </Button>
                 </div>
               </div>
 
