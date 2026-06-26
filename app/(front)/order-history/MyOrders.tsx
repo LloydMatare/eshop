@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   Package,
   Search,
@@ -230,22 +231,22 @@ export default function MyOrders() {
 
               <div className="flex gap-2 mt-4 pt-4 border-t border-base-300">
                 {order.isPaid && (
-                  <span className="badge badge-success gap-1">
-                    <CheckCircle className="w-3 h-3" />
+                  <Badge variant="outline" className="gap-1 border-success/30 bg-success/10 text-success">
+                    <CheckCircle className="size-3" />
                     Paid
-                  </span>
+                  </Badge>
                 )}
                 {order.isDelivered && (
-                  <span className="badge badge-success gap-1">
-                    <CheckCircle className="w-3 h-3" />
+                  <Badge variant="outline" className="gap-1 border-success/30 bg-success/10 text-success">
+                    <CheckCircle className="size-3" />
                     Delivered
-                  </span>
+                  </Badge>
                 )}
-                {!order.isDelivered && (
-                  <span className="badge badge-warning gap-1">
-                    <Clock className="w-3 h-3" />
+                {!order.isPaid && !order.isDelivered && (
+                  <Badge variant="outline" className="gap-1 border-warning/30 bg-warning/10 text-warning">
+                    <Clock className="size-3" />
                     Processing
-                  </span>
+                  </Badge>
                 )}
               </div>
             </div>
