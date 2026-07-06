@@ -29,12 +29,22 @@ export async function PUT(
           { status: 400 }
         );
 
+      const currentTracking = order.tracking || [];
+      const updatedTracking = [
+        ...currentTracking,
+        {
+          status: 'Delivered',
+          message: 'Order has been delivered successfully',
+          timestamp: new Date().toISOString(),
+        },
+      ];
+
       const updatedOrder = await db
         .update(orders)
         .set({
-          isPaid: true,
           isDelivered: true,
           deliveredAt: new Date(),
+          tracking: updatedTracking,
         })
         .where(eq(orders.id, (await params).id))
         .returning()

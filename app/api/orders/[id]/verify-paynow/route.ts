@@ -54,12 +54,23 @@ export async function POST(
       );
     }
 
+    const currentTracking = order.tracking || [];
+    const updatedTracking = [
+      ...currentTracking,
+      {
+        status: 'Paid',
+        message: 'Payment confirmed via PayNow',
+        timestamp: new Date().toISOString(),
+      },
+    ];
+
     await db
       .update(orders)
       .set({
         isPaid: true,
         paidAt: new Date(),
         paymentResult: paymentDetails,
+        tracking: updatedTracking,
       })
       .where(eq(orders.id, (await params).id));
 

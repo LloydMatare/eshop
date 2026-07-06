@@ -60,6 +60,13 @@ export async function POST(req: Request) {
       totalPrice: String(totalPrice),
       shippingAddress: payload.shippingAddress,
       paymentMethod: payload.paymentMethod,
+      tracking: [
+        {
+          status: 'Order Received',
+          message: 'Order has been placed successfully',
+          timestamp: new Date().toISOString(),
+        },
+      ],
     });
 
     const createdOrder = await db

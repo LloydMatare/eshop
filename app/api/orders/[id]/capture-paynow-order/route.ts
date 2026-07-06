@@ -34,6 +34,15 @@ export async function POST(
     const paymentStatus = await paynow.capturePayNowOrder(order.paymentPollUrl);
 
     if (paymentStatus.success) {
+      const currentTracking = order.tracking || [];
+      const updatedTracking = [
+        ...currentTracking,
+        {
+          status: 'Paid',
+          message: 'Payment confirmed via PayNow',
+          timestamp: new Date().toISOString(),
+        },
+      ];
       const updatedOrder = await db
         .update(orders)
         .set({
@@ -42,6 +51,7 @@ export async function POST(
           paymentResult: {
             id: paymentStatus.id,
           },
+          tracking: updatedTracking,
         })
         .where(eq(orders.id, id))
         .returning()

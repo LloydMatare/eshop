@@ -25,6 +25,15 @@ export async function POST(
     try {
       const { orderID } = await req.json();
       const captureData = await paypal.capturePayment(orderID);
+      const currentTracking = order.tracking || [];
+      const updatedTracking = [
+        ...currentTracking,
+        {
+          status: 'Paid',
+          message: 'Payment confirmed via PayPal',
+          timestamp: new Date().toISOString(),
+        },
+      ];
       const updatedOrder = await db
         .update(orders)
         .set({
@@ -35,6 +44,7 @@ export async function POST(
             status: captureData.status,
             email_address: captureData.payer.email_address,
           },
+          tracking: updatedTracking,
         })
         .where(eq(orders.id, (await params).id))
         .returning()

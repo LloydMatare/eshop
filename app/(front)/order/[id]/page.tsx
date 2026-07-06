@@ -18,12 +18,12 @@ export default function OrderDetailsPage({
     : null;
 
   return (
-    <div>
+    <div className="bg-base-100">
       <OrderDetails
         paypalClientId={process.env.PAYPAL_CLIENT_ID || 'sb'}
         orderId={id}
       />
-      <div className="container mx-auto px-4 lg:px-8 py-8">
+      <div className="container mx-auto px-4 lg:px-8 pb-8">
         <OrderTracking orderId={id} session={session} />
       </div>
     </div>
