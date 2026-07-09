@@ -1,4 +1,5 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
+import { isAdminUser } from "@/lib/is-admin";
 import {
   Shield,
   Cpu,
@@ -18,7 +19,7 @@ const AdminLayout = async ({
   const clerk = await clerkClient();
   const user = userId ? await clerk.users.getUser(userId) : null;
 
-  if (!user || !user.publicMetadata?.isAdmin) {
+  if (!user || !isAdminUser(user.publicMetadata)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="bg-card rounded-2xl p-8 border border-border max-w-md text-center">

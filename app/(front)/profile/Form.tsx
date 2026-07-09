@@ -1,5 +1,6 @@
 "use client";
 import { useUser } from "@clerk/nextjs";
+import { isAdminUser } from "@/lib/is-admin";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
@@ -114,7 +115,7 @@ const Form = () => {
                   {user?.primaryEmailAddress?.emailAddress}
                 </p>
 
-                {user?.publicMetadata?.isAdmin == true && (
+                {isAdminUser(user?.publicMetadata) && (
                   <div className="badge badge-primary gap-2">
                     <Shield className="w-3 h-3" />
                     Administrator

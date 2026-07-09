@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
+import { isAdminUser } from "@/lib/is-admin";
 import useSWR from "swr";
 import { fetcher } from "@/lib/services/fetcher";
 import { formatId } from "@/lib/utils";
@@ -43,7 +44,7 @@ export default function MyOrders() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const isAdmin = user?.publicMetadata?.isAdmin === true;
+  const isAdmin = isAdminUser(user?.publicMetadata);
 
   const { data: orders, error } = useSWR(
     isLoaded && user

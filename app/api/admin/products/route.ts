@@ -11,19 +11,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  const body = await req.json().catch(() => ({}));
+
   const id = crypto.randomUUID();
-  const randomId = Math.floor(Math.random() * 10000);
   const product = {
     id,
-    part: `PART-${randomId}`,
-    name: "Sample Product",
-    slug: "sample-product-" + Math.random(),
-    image: "/images/shirt1.jpg",
-    price: "0",
-    category: "Sample Category",
-    brand: "Sample Brand",
-    countInStock: 0,
-    description: "Sample description",
+    part: body.part || `PART-${Math.floor(Math.random() * 10000)}`,
+    name: body.name || "Sample Product",
+    slug: body.slug || "sample-product-" + Math.random(),
+    image: body.image || "/images/shirt1.jpg",
+    price: String(body.price ?? "0"),
+    category: body.category || "Sample Category",
+    brand: body.brand || "Sample Brand",
+    countInStock: Number(body.countInStock ?? 0),
+    description: body.description || "Sample description",
     rating: "0",
     numReviews: 0,
   };

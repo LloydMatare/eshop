@@ -4,6 +4,7 @@ declare global {
   interface CustomJwtSessionClaims {
     metadata?: {
       isAdmin?: boolean
+      role?: string
     }
   }
 }

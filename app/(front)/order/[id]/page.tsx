@@ -2,6 +2,7 @@
 
 import { use } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { isAdminUser } from '@/lib/is-admin';
 import OrderTracking from '@/components/OrderTracking';
 import OrderDetails from './OrderDetails';
 
@@ -14,7 +15,7 @@ export default function OrderDetailsPage({
   const { user } = useUser();
 
   const session = user
-    ? { user: { isAdmin: user?.publicMetadata?.isAdmin == true } }
+    ? { user: { isAdmin: isAdminUser(user?.publicMetadata) } }
     : null;
 
   return (

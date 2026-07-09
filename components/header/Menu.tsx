@@ -2,6 +2,7 @@
 import useCartService from "@/lib/hooks/useCartStore";
 import useLayoutService from "@/lib/hooks/useLayout";
 import { useUser, useAuth, useClerk } from "@clerk/nextjs";
+import { isAdminUser } from "@/lib/is-admin";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -34,7 +35,7 @@ const Menu = () => {
 
   const { user } = useUser();
   const { sessionClaims } = useAuth();
-  const isAdmin = sessionClaims?.metadata?.isAdmin == true || user?.publicMetadata?.isAdmin == true;
+  const isAdmin = isAdminUser(sessionClaims?.metadata) || isAdminUser(user?.publicMetadata);
   const { theme, toggleTheme } = useLayoutService();
   const userButtonRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);

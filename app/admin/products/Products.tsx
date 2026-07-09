@@ -24,7 +24,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import {
@@ -81,33 +80,9 @@ export default function Products() {
     }
   );
 
-  const { trigger: createProduct, isMutating: isCreating } = useSWRMutation(
-    `/api/admin/products`,
-    async (url) => {
-      const toastId = toast.loading("Creating product...");
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-          toast.error(data.message || "Failed to create product", {
-            id: toastId,
-          });
-          return;
-        }
-
-        toast.success("Product created successfully", { id: toastId });
-        mutate();
-        router.push(`/admin/products/${data.product._id}`);
-      } catch (error) {
-        console.error("Error creating product:", error);
-        toast.error("Failed to create product", { id: toastId });
-      }
-    }
-  );
+  const createProduct = () => {
+    router.push("/admin/products/new");
+  };
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
@@ -199,11 +174,8 @@ export default function Products() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button
-            disabled={isCreating}
-            onClick={() => createProduct()}
-          >
-            {isCreating ? <Spinner /> : <Plus />}
+          <Button onClick={createProduct}>
+            <Plus />
             Create Product
           </Button>
           <input

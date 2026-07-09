@@ -1,6 +1,7 @@
 "use client";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { useUser } from "@clerk/nextjs";
+import { isAdminUser } from "@/lib/is-admin";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -324,7 +325,7 @@ export default function OrderDetails({
                 </Button>
               )}
 
-              {user?.publicMetadata?.isAdmin == true && !isDelivered && (
+              {isAdminUser(user?.publicMetadata) && !isDelivered && (
                 <Button
                   variant="secondary"
                   className="w-full gap-2"
