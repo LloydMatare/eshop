@@ -10,7 +10,7 @@ import { DataTableColumnHeader } from "@/components/ui/data-table-column-header"
 import { formatId } from "@/lib/utils"
 
 export type ProductRow = {
-  _id: string
+  id: string
   part: string
   name: string
   price: number
@@ -25,13 +25,13 @@ export function createProductColumns(
 ): ColumnDef<ProductRow>[] {
   return [
     {
-      accessorKey: "_id",
+      accessorKey: "id",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="ID" />
       ),
       cell: ({ row }) => (
         <span className="font-mono text-sm">
-          {formatId(row.getValue("_id"))}
+          {formatId(row.getValue("id"))}
         </span>
       ),
     },
@@ -114,7 +114,7 @@ export function createProductColumns(
         return (
           <div className="flex items-center justify-end gap-2">
             <Button asChild variant="ghost" size="sm">
-              <Link href={`/admin/products/${product._id}`}>
+              <Link href={`/admin/products/${product.id}`}>
                 <Pen />
                 Edit
               </Link>
@@ -123,7 +123,7 @@ export function createProductColumns(
               variant="ghost"
               size="sm"
               className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => onDelete(product._id)}
+              onClick={() => onDelete(product.id)}
             >
               <Trash2 />
               Delete

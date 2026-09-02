@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -56,6 +57,11 @@ export async function PUT(
         { status: 404 }
       );
     }
+
+    const client = await clerkClient();
+    await client.users.updateUser((await params).id, {
+      publicMetadata: { isAdmin: Boolean(newIsAdmin) },
+    });
 
     return NextResponse.json({
       message: "User updated successfully",

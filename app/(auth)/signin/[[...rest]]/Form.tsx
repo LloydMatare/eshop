@@ -1,8 +1,9 @@
 "use client";
 import { SignIn } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
-import { Cpu, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 const Form = () => {
   const params = useSearchParams();
@@ -13,9 +14,14 @@ const Form = () => {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-gradient-to-br from-primary to-secondary rounded-2xl">
-              <Cpu className="w-12 h-12 text-white" />
-            </div>
+            <Image
+              src="/comp.webp"
+              alt="Compulink"
+              width={180}
+              height={50}
+              className="h-14 w-auto"
+              priority
+            />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
             Welcome Back

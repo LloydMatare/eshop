@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Cpu, Phone, Truck } from "lucide-react";
+import { Phone, Truck } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SearchBox } from "./SearchBox";
 import Menu from "./Menu";
@@ -48,17 +49,14 @@ const Header = () => {
               <SidebarTrigger className="flex lg:hidden w-9 h-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all" />
 
               <Link href="/" className="flex items-center gap-2.5 shrink-0">
-                <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-                  <Cpu className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <div>
-                  <span className="text-lg font-bold tracking-tight text-foreground">
-                    Compulink
-                  </span>
-                  <span className="hidden sm:inline text-[10px] font-medium text-muted-foreground ml-2 uppercase tracking-wider">
-                    IT Solutions
-                  </span>
-                </div>
+                <Image
+                  src="/comp.webp"
+                  alt="Compulink"
+                  width={140}
+                  height={40}
+                  className="h-10 w-auto"
+                  priority
+                />
               </Link>
             </div>
 

@@ -11,7 +11,7 @@ export default function ProductItem({ product }: { product: Product }) {
       <figure className="relative overflow-hidden bg-base-200">
         <Link href={`/product/${product.slug}`} className="block w-full">
           <Image
-            src={`${product.image}`}
+            src={product.image?.startsWith("/") || product.image?.startsWith("http") ? product.image : "/images/box.png"}
             alt={product.name}
             width={200}
             height={80}

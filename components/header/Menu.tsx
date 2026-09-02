@@ -36,7 +36,7 @@ const Menu = () => {
   const { user } = useUser();
   const { sessionClaims } = useAuth();
   const isAdmin = isAdminUser(sessionClaims?.metadata) || isAdminUser(user?.publicMetadata);
-  const { theme, toggleTheme } = useLayoutService();
+  const { resolvedTheme, toggleTheme } = useLayoutService();
   const userButtonRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
 
@@ -61,7 +61,7 @@ const Menu = () => {
           className="relative w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/80 transition-all"
           aria-label="Toggle theme"
         >
-          {theme === "dark" ? (
+          {resolvedTheme === "dark" ? (
             <Sun className="w-[18px] h-[18px]" />
           ) : (
             <Moon className="w-[18px] h-[18px]" />
@@ -112,7 +112,7 @@ const Menu = () => {
                     </p>
                   </div>
                   <div className="p-1.5">
-                    {!isAdmin && (
+                    {isAdmin && (
                       <Link
                         href="/admin/dashboard"
                         onClick={() => setShowUserMenu(false)}
