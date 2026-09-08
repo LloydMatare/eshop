@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "p4-ofp.static.pub",
       },
+      {
+        protocol: "https",
+        hostname: "*.blob.vercel-storage.com",
+      },
     ],
   },
 };

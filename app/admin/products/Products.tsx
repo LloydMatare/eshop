@@ -12,6 +12,7 @@ import {
   Trash2,
   Search,
   X,
+  RefreshCw,
 } from "lucide-react";
 import DataError from "@/components/admin/DataError";
 import { fetcher } from "@/lib/services/fetcher";
@@ -59,6 +60,7 @@ export default function Products() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
+  const [syncing, setSyncing] = useState(false);
 
   const router = useRouter();
 
@@ -82,6 +84,35 @@ export default function Products() {
 
   const createProduct = () => {
     router.push("/admin/products/new");
+  };
+
+  const handleOdooSync = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    const toastId = toast.loading("Syncing products from Odoo...");
+    try {
+      const res = await fetch("/api/odoo/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const r = data.result;
+        toast.success(
+          `Odoo sync complete: ${r.created} created, ${r.updated} updated, ${r.outOfStock} out of stock (${r.templates} templates)`,
+          { id: toastId }
+        );
+        mutate();
+      } else {
+        toast.error(data.message || "Odoo sync failed", { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Odoo sync failed", {
+        id: toastId,
+      });
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const filteredProducts = useMemo(() => {
@@ -158,7 +189,6 @@ export default function Products() {
 
   if (error) return <div>An error has occurred: {error.message}</div>;
   if (isLoading) return <AdminLoading />;
-  if (!products || products.length === 0) return <DataError name="products" />;
 
   const columns = createProductColumns((id) => setDeleteProductId(id));
 
@@ -173,7 +203,11 @@ export default function Products() {
             {filteredProducts.length} of {products?.length || 0} products
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={handleOdooSync} disabled={syncing} variant="secondary">
+            <RefreshCw className={syncing ? "animate-spin" : ""} />
+            {syncing ? "Syncing..." : "Sync from Odoo"}
+          </Button>
           <Button onClick={createProduct}>
             <Plus />
             Create Product
@@ -194,6 +228,9 @@ export default function Products() {
         </div>
       </div>
 
+      {!products || products.length === 0 ? (
+        <DataError name="products" />
+      ) : (
       <DataTable
         columns={columns}
         data={filteredProducts}
@@ -260,6 +297,7 @@ export default function Products() {
           </div>
         }
       />
+      )}
 
       <Dialog
         open={!!deleteProductId}

@@ -5,6 +5,8 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import SidebarContent from "@/components/Sidebar";
 import Header from "@/components/header/Header";
 import Footer from "@/components/Footer";
+import WhatsAppButton from "@/components/WhatsAppButton";
+import ChatBot from "@/components/chat/ChatBot";
 
 export default function FrontLayout({
   children,
@@ -28,6 +30,8 @@ export default function FrontLayout({
               <Header />
               {children}
               <Footer />
+              <WhatsAppButton />
+              <ChatBot />
             </div>
           </div>
         </SidebarProvider>
